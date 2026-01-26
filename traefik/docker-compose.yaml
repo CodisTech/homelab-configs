@@ -1,0 +1,99 @@
+secrets:
+  cf-token:
+    file: ./cf-token
+
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: unless-stopped
+    depends_on:
+      - crowdsec-bouncer
+    security_opt:
+      - no-new-privileges:true
+    secrets:
+      - cf-token
+    env_file:
+      - .env
+    networks:
+      - proxy-internal
+    ports:
+      - 80:80
+      - 443:443
+      - 8082:8082
+    environment:
+      - TRAEFIK_DASHBOARD_CREDENTIALS=${TRAEFIK_DASHBOARD_CREDENTIALS}
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf-token
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yaml:/traefik.yaml:ro
+      - ./acme.json:/acme.json
+      - ./config.yaml:/config.yaml:ro
+      - ./logs:/var/log/traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.entrypoints=http"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.local.codistech.live`)"
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+      - "traefik.http.routers.traefik-secure.entrypoints=https"
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.local.codistech.live`)"
+      - "traefik.http.routers.traefik-secure.middlewares=authentik@file,crowdsec-bouncer@file"
+      - "traefik.http.routers.traefik-secure.tls=true"
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=local.codistech.live"
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.local.codistech.live"
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      - "traefik.docker.network=proxy-internal"
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: traefik-promtail
+    restart: unless-stopped
+    user: root
+    volumes:
+      - ./logs:/var/log/traefik:ro
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - crowdsec_logs:/var/log/crowdsec:ro
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - proxy-internal
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - GID=1000
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/sshd crowdsecurity/linux
+    volumes:
+      - /home/serveradmin/docker_volumes/crowdsec/config:/etc/crowdsec
+      - /home/serveradmin/docker_volumes/crowdsec/data:/var/lib/crowdsec/data
+      - crowdsec_logs:/var/log
+      - ./logs:/var/log/traefik:ro
+      - /var/log/auth.log:/var/log/host/auth.log:ro
+      - /var/log/syslog:/var/log/host/syslog:ro
+    networks:
+      - proxy-internal
+
+  crowdsec-bouncer:
+    image: fbonalair/traefik-crowdsec-bouncer:latest
+    container_name: crowdsec-bouncer
+    restart: unless-stopped
+    depends_on:
+      - crowdsec
+    environment:
+      - CROWDSEC_BOUNCER_API_KEY=${CROWDSEC_BOUNCER_API_KEY}
+      - CROWDSEC_AGENT_HOST=crowdsec:8080
+    networks:
+      - proxy-internal
+
+volumes:
+  crowdsec_logs:
+
+networks:
+  proxy-internal:
+    external: true

@@ -1,0 +1,22 @@
+# Secrets
+.env
+*.env
+secrets/
+
+# Data directories
+data/
+*_data/
+
+# Logs
+*.log
+logs/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+acme.json
+
+# OS files
+.DS_Store
+Thumbs.db
