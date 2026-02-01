@@ -1,7 +1,3 @@
-secrets:
-  cf_tunnel_token:
-    file: ./secrets/cf_tunnel_token
-
 services:
   n8n:
     image: n8nio/n8n:latest
@@ -33,9 +29,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
-    secrets:
-      - cf_tunnel_token
-    command: tunnel --no-autoupdate run --token /run/secrets/cf_tunnel_token
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
     networks:
       - proxy-internal
 
