@@ -1,0 +1,133 @@
+---
+services:
+  prometheus:
+    image: docker.io/prom/prometheus:v3.9.1
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-remote-write-receiver
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config_prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./config_prometheus/rules:/etc/prometheus/rules:ro
+    networks:
+      monitoring:
+        aliases:
+          - prometheus
+      proxy-internal:
+        aliases:
+          - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.codistech.live`)"
+      - "traefik.http.routers.prometheus.entrypoints=https"
+      - "traefik.http.routers.prometheus.tls.certresolver=cloudflare"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.docker.network=proxy-internal"
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config_alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    networks:
+      monitoring:
+        aliases:
+          - alertmanager
+
+  grafana:
+    image: docker.io/grafana/grafana-oss:12.3.1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SERVER_HTTP_PORT=3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      monitoring:
+        aliases:
+          - grafana
+      proxy-internal:
+        aliases:
+          - grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.local.codistech.live`)"
+      - "traefik.http.routers.grafana.entrypoints=https"
+      - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy-internal"
+
+  loki:
+    image: docker.io/grafana/loki:2.9.0
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+      - ./config_loki/loki.yaml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      monitoring:
+        aliases:
+          - loki
+      proxy-internal:
+        aliases:
+          - loki
+
+  pihole-exporter:
+    image: ekofr/pihole-exporter:latest
+    restart: unless-stopped
+    ports:
+      - "9617:9617"
+    environment:
+      - PIHOLE_HOSTNAME=192.168.0.55
+      - PIHOLE_PORT=8080
+      - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+    networks:
+      monitoring:
+        aliases:
+          - pihole-exporter
+
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:latest
+    restart: unless-stopped
+    ports:
+      - "9221:9221"
+    environment:
+      - PVE_USER=${PVE_USER}
+      - PVE_TOKEN_NAME=${PVE_TOKEN_NAME}
+      - PVE_TOKEN_VALUE=${PVE_TOKEN_VALUE}
+      - PVE_VERIFY_SSL=false
+    networks:
+      monitoring:
+        aliases:
+          - pve-exporter
+
+volumes:
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  loki_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+  proxy-internal:
+    external: true

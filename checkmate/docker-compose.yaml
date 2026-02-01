@@ -1,0 +1,73 @@
+services:
+  client:
+    image: bluewaveuptime/uptime_client:latest
+    restart: always
+    environment:
+      UPTIME_APP_API_BASE_URL: "https://checkmate.local.codistech.live/api/v1"
+    depends_on:
+      - server
+    networks:
+      - proxy-internal
+      - checkmate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy-internal"
+
+      # HTTP
+      - "traefik.http.routers.checkmate.entrypoints=http"
+      - "traefik.http.routers.checkmate.rule=Host(`checkmate.local.codistech.live`)"
+      - "traefik.http.middlewares.checkmate-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.checkmate.middlewares=checkmate-https"
+
+      # HTTPS
+      - "traefik.http.routers.checkmate-secure.entrypoints=https"
+      - "traefik.http.routers.checkmate-secure.rule=Host(`checkmate.local.codistech.live`)"
+      - "traefik.http.routers.checkmate-secure.tls=true"
+      - "traefik.http.routers.checkmate-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.checkmate-secure.service=checkmate"
+      - "traefik.http.services.checkmate.loadbalancer.server.port=80"
+
+  server:
+    image: bluewaveuptime/uptime_server:latest
+    restart: always
+    environment:
+      DB_CONNECTION_STRING: mongodb://mongodb:27017/uptime_db
+      REDIS_HOST: redis
+      PAGESPEED_API_KEY: ${PAGESPEED_API_KEY}
+      REQUIRE_EMAIL_VERIFICATION: "false"
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - proxy-internal
+      - checkmate
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy-internal"
+      - "traefik.http.routers.checkmate-api.rule=Host(`checkmate.local.codistech.live`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.checkmate-api.entrypoints=https"
+      - "traefik.http.routers.checkmate-api.tls=true"
+      - "traefik.http.routers.checkmate-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.checkmate-api.loadbalancer.server.port=5000"
+
+  redis:
+    image: bluewaveuptime/uptime_redis:latest
+    restart: always
+    volumes:
+      - ./redis/data:/data
+    networks:
+      - checkmate
+
+  mongodb:
+    image: bluewaveuptime/uptime_database_mongo:latest
+    restart: always
+    volumes:
+      - ./mongo/data:/data/db
+    command: ["mongod", "--quiet"]
+    networks:
+      - checkmate
+
+networks:
+  checkmate:
+  proxy-internal:
+    external: true
