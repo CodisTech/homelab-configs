@@ -1,3 +1,7 @@
+secrets:
+  cf_tunnel_token:
+    file: ./secrets/cf_tunnel_token
+
 services:
   n8n:
     image: n8nio/n8n:latest
@@ -10,7 +14,7 @@ services:
       - N8N_EDITOR_BASE_URL=https://n8n.local.codistech.live/
       - WEBHOOK_URL=https://n8n-webhook.codistech.live/
       - GENERIC_TIMEZONE=America/Detroit
-      - N8N_PROXY_HOPS=1   
+      - N8N_PROXY_HOPS=1
     volumes:
       - ./data:/home/node/.n8n
     ports:
@@ -18,18 +22,20 @@ services:
     networks:
       - proxy-internal
     labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.n8n.rule=Host(`n8n.local.codistech.live`) || Host(`n8n-webhook.codistech.live`)"
-    - "traefik.http.routers.n8n.entrypoints=https"
-    - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
-    - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-    - "traefik.docker.network=proxy-internal"
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.local.codistech.live`) || Host(`n8n-webhook.codistech.live`)"
+      - "traefik.http.routers.n8n.entrypoints=https"
+      - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+      - "traefik.docker.network=proxy-internal"
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ***REMOVED***
+    secrets:
+      - cf_tunnel_token
+    command: tunnel --no-autoupdate run --token /run/secrets/cf_tunnel_token
     networks:
       - proxy-internal
 
