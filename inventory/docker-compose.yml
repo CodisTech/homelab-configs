@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-app
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://inventory_user:***REMOVED***@db:3306/inventory_db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - inventory-network
+
+  db:
+    image: mysql:8.0
+    container_name: inventory-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=***REMOVED***
+      - MYSQL_DATABASE=inventory_db
+      - MYSQL_USER=inventory_user
+      - MYSQL_PASSWORD=***REMOVED***
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - inventory-network
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    
+volumes:
+  mysql_data:
+    name: inventory-mysql-data
+
+networks:
+  inventory-network:
+    name: inventory-network

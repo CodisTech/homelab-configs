@@ -1,0 +1,18 @@
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    hostname: pihole2
+    network_mode: host
+    environment:
+      - TZ=America/Detroit
+      - WEBPASSWORD=changeme
+      - PIHOLE_DNS_=9.9.9.9;149.112.112.112
+      - DNSMASQ_LISTENING=all
+      - WEB_PORT=8080
+    volumes:
+      - ./etc-pihole:/etc/pihole
+      - ./etc-dnsmasq.d:/etc/dnsmasq.d
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
