@@ -33,15 +33,23 @@ This homelab serves as both a production environment and a learning platform for
 Internet
     │
     ▼
-┌──────────┐     ┌───────────┐
-│ Traefik  │────▶│ Authentik │ (SSO/MFA)
-└────┬─────┘     └───────────┘
+┌──────────┐     ┌───────────┐     ┌───────────┐
+│ Traefik  │────▶│ CrowdSec  │────▶│ Authentik │
+└────┬─────┘     └───────────┘     └───────────┘
      │
      ├──▶ Wazuh (SIEM)
      ├──▶ Grafana (Monitoring)
      ├──▶ Gitea (Git)
      ├──▶ n8n (Automation)
      ├──▶ Home Assistant (IoT)
+     ├──▶ Proxmox (Virtualization)
+     ├──▶ Unraid (Storage)
+     ├──▶ pfSense (Firewall)
+     ├──▶ Unifi (Network)
+     ├──▶ Nextcloud (Files)
+     ├──▶ Pi-hole x2 (DNS)
+     ├──▶ Portainer (Containers)
+     ├──▶ Heimdall (Dashboard)
      └──▶ Media Services
 ```
 
