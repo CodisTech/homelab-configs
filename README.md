@@ -27,6 +27,7 @@ This homelab serves as both a production environment and a learning platform for
 | [Inventory](inventory/) | Asset management | [README](inventory/README.md) |
 | [Games](games/) | Minecraft server | [README](games/README.md) |
 | [Netdata](monitoring/) | Real-time metrics | [README](monitoring/README.md) |
+| [Diun](diun/) | Container update notifications | [README](diun/README.md) |
 
 ## Architecture
 ```
