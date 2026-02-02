@@ -1,0 +1,21 @@
+services:
+  renovate:
+    image: renovate/renovate:latest
+    container_name: renovate
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      - RENOVATE_PLATFORM=gitea
+      - RENOVATE_ENDPOINT=https://git.local.codistech.live/api/v1
+      - RENOVATE_TOKEN=${GITEA_TOKEN}
+      - RENOVATE_GIT_AUTHOR=Renovate Bot <renovate@codistech.live>
+      - LOG_LEVEL=info
+    volumes:
+      - ./config.js:/usr/src/app/config.js
+    networks:
+      - proxy-internal
+
+networks:
+  proxy-internal:
+    external: true
