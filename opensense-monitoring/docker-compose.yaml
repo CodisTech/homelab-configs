@@ -71,7 +71,7 @@ services:
       - "traefik.docker.network=proxy-internal"
 
   loki:
-    image: docker.io/grafana/loki:2.9.0
+    image: docker.io/grafana/loki:2.9.17
     restart: unless-stopped
     ports:
       - "3100:3100"
