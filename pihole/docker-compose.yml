@@ -6,7 +6,7 @@ services:
     network_mode: host
     environment:
       - TZ=America/Detroit
-      - WEBPASSWORD=changeme
+      - WEBPASSWORD=${WEBPASSWORD}
       - PIHOLE_DNS_=9.9.9.9;149.112.112.112
       - DNSMASQ_LISTENING=all
       - WEB_PORT=8080
