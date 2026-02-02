@@ -77,10 +77,6 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-## License
-
-[MIT](LICENSE)
-
 ## GitOps Workflow
 
 This repository follows a GitOps approach where Gitea is the source of truth for all infrastructure configurations.
@@ -134,3 +130,7 @@ This repository follows a GitOps approach where Gitea is the source of truth for
 - **Rollback** — Easy to revert with `git revert`
 - **Audit Trail** — Complete history of infrastructure changes
 - **No Auto-Updates** — You control when changes go live
+
+## License
+
+[MIT](LICENSE)
