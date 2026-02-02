@@ -80,3 +80,57 @@ docker-compose up -d
 ## License
 
 [MIT](LICENSE)
+
+## GitOps Workflow
+
+This repository follows a GitOps approach where Gitea is the source of truth for all infrastructure configurations.
+
+### Update Flow
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    Diun     │────▶│  Telegram   │     │  Renovate   │
+│  (8 AM)     │     │   Alert     │     │  (9 AM)     │
+└─────────────┘     └─────────────┘     └──────┬──────┘
+                                               │
+                                        ┌──────▼──────┐
+                                        │   Gitea     │
+                                        │    (PR)     │
+                                        └──────┬──────┘
+                                               │
+                                        ┌──────▼──────┐
+                                        │   Review    │
+                                        │   & Merge   │
+                                        └──────┬──────┘
+                                               │
+                                        ┌──────▼──────┐
+                                        │  Production │
+                                        │  git pull   │
+                                        │  docker up  │
+                                        └─────────────┘
+```
+
+### Daily Schedule
+
+| Time | Service | Action |
+|------|---------|--------|
+| 8:00 AM | Diun | Scans containers, sends Telegram alert if updates exist |
+| 9:00 AM | Renovate | Creates PRs in Gitea for outdated images |
+
+### Deployment Process
+
+1. Review PR in Gitea
+2. Merge to main branch
+3. On production server:
+```bash
+   cd ~/docker_volumes/<service>
+   docker-compose pull
+   docker-compose up -d
+```
+
+### Benefits
+
+- **Version Control** — All changes tracked in git
+- **Review Process** — PRs enable review before deployment
+- **Rollback** — Easy to revert with `git revert`
+- **Audit Trail** — Complete history of infrastructure changes
+- **No Auto-Updates** — You control when changes go live
