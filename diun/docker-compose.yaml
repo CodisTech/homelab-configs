@@ -1,0 +1,22 @@
+services:
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+    restart: unless-stopped
+    command: serve
+    environment:
+      - TZ=America/Detroit
+      - DIUN_WATCH_SCHEDULE=0 8 * * *
+      - DIUN_PROVIDERS_DOCKER=true
+      - DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=true
+      - DIUN_NOTIF_TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - DIUN_NOTIF_TELEGRAM_CHATIDS=${TELEGRAM_CHAT_ID}
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy-internal
+
+networks:
+  proxy-internal:
+    external: true
