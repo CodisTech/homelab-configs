@@ -4,12 +4,12 @@ services:
     container_name: n8n
     restart: unless-stopped
     environment:
-      - N8N_HOST=n8n.local.codistech.live
+      - N8N_HOST=${N8N_HOST}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - N8N_EDITOR_BASE_URL=https://n8n.local.codistech.live/
-      - WEBHOOK_URL=https://n8n-webhook.codistech.live/
-      - GENERIC_TIMEZONE=America/Detroit
+      - N8N_EDITOR_BASE_URL=https://${N8N_HOST}/
+      - WEBHOOK_URL=https://${WEBHOOK_HOST}/
+      - GENERIC_TIMEZONE=${TIMEZONE}
       - N8N_PROXY_HOPS=1
     volumes:
       - ./data:/home/node/.n8n
@@ -19,9 +19,16 @@ services:
       - proxy-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.local.codistech.live`) || Host(`n8n-webhook.codistech.live`)"
+      # Editor UI - protected by Authentik
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"
       - "traefik.http.routers.n8n.entrypoints=https"
       - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
+      - "traefik.http.routers.n8n.middlewares=authentik@file"
+      # Webhooks - NO auth (for MCP/API access)
+      - "traefik.http.routers.n8n-webhook.rule=Host(`${WEBHOOK_HOST}`)"
+      - "traefik.http.routers.n8n-webhook.entrypoints=https"
+      - "traefik.http.routers.n8n-webhook.tls.certresolver=cloudflare"
+      # Service
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"
       - "traefik.docker.network=proxy-internal"
 
