@@ -29,7 +29,6 @@ This homelab serves as both a production environment and a learning platform for
 | [Netdata](monitoring/) | Real-time metrics | [README](monitoring/README.md) |
 | [Diun](diun/) | Container update notifications | [README](diun/README.md) |
 | [Renovate](renovate/) | Automated dependency PRs | [README](renovate/README.md) |
-| [Diun](diun/) | Container update notifications | [README](diun/README.md) |
 
 ## Architecture
 ```
