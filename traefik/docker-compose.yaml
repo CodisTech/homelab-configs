@@ -48,7 +48,7 @@ services:
       - "traefik.docker.network=proxy-internal"
 
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:2.9.17
     container_name: traefik-promtail
     restart: unless-stopped
     user: root
