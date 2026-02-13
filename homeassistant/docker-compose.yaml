@@ -54,6 +54,20 @@ services:
     restart: unless-stopped
     networks:
       - proxy-internal
+  
+  matter-server:
+    container_name: matter-server  
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable 
+    restart: unless-stopped
+    security_opt:
+      - apparmor=unconfined 
+    volumes:
+      - ./matter-server:/data 
+      - /run/dbus:/run/dbus:ro 
+    networks:
+      - proxy-internal
+    ports:
+      - "5580:5580"
 
 networks:
   proxy-internal:

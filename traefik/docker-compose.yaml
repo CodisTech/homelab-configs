@@ -56,6 +56,7 @@ services:
       - ./logs:/var/log/traefik:ro
       - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
       - crowdsec_logs:/var/log/crowdsec:ro
+      - ./ca.crt:/etc/promtail/certs/ca.crt:ro     
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - proxy-internal

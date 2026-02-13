@@ -1,0 +1,55 @@
+version: "3.8" 
+  
+services:
+  mariadb:  
+    image: lscr.io/linuxserver/mariadb:latest  
+    container_name: nextcloud-db
+    restart: unless-stopped  
+    environment:  
+      - PUID=${PUID} 
+      - PGID=${PGID} 
+      - TZ=${TZ}  
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE} 
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD} 
+    volumes:
+      - /mnt/nextcloud/mariadb:/config
+    networks:  
+      - nextcloud-internal
+  
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    restart: unless-stopped  
+    depends_on:
+      - mariadb
+    environment:  
+      - PUID=${PUID} 
+      - PGID=${PGID} 
+      - TZ=${TZ}  
+    volumes:
+      - /mnt/nextcloud/appdata:/config
+      - /mnt/nextcloud/data:/data  
+    labels: 
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud.entrypoints=http"  
+      - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.local.codistech.live`)" 
+      - "traefik.http.middlewares.nextcloud-https-redirect.redirectscheme.scheme=https" 
+      - "traefik.http.routers.nextcloud.middlewares=nextcloud-https-redirect"
+      - "traefik.http.routers.nextcloud-secure.entrypoints=https"
+      - "traefik.http.routers.nextcloud-secure.rule=Host(`nextcloud.local.codistech.live`)"
+      - "traefik.http.routers.nextcloud-secure.tls=true"
+      - "traefik.http.routers.nextcloud-secure.service=nextcloud"
+      - "traefik.http.services.nextcloud.loadbalancer.server.port=443" 
+      - "traefik.http.services.nextcloud.loadbalancer.server.scheme=https"
+      - "traefik.docker.network=proxy-internal"
+    networks:  
+      - nextcloud-internal
+      - proxy-internal 
+  
+networks:
+  nextcloud-internal:
+    driver: bridge
+  proxy-internal: 
+    external: true
