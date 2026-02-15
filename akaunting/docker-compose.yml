@@ -1,0 +1,66 @@
+services:
+  akaunting:
+    build: .
+    container_name: akaunting
+    restart: unless-stopped
+    environment:
+      - APP_URL=https://akaunting.local.codistech.live
+      - DB_HOST=akaunting-db
+      - DB_PORT=3306
+      - DB_DATABASE=akaunting
+      - DB_USERNAME=akaunting
+      - DB_PASSWORD=${DB_PASSWORD}
+      - COMPANY_NAME=CyberReadyLabs (CodisTech LLC)
+      - COMPANY_EMAIL=john@cyberreadylabs.com
+      - ADMIN_EMAIL=john@cyberreadylabs.com
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_NAME=John
+    volumes:
+      - akaunting-storage:/var/www/html/storage
+      - akaunting-modules:/var/www/html/modules
+    depends_on:
+      akaunting-db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.akaunting.rule=Host(`akaunting.local.codistech.live`)"
+      - "traefik.http.routers.akaunting.entrypoints=https"
+      - "traefik.http.routers.akaunting.tls=true"
+      - "traefik.http.routers.akaunting.tls.certresolver=cloudflare"
+      - "traefik.http.routers.akaunting.middlewares=authentik@file"
+      - "traefik.http.services.akaunting.loadbalancer.server.port=80"
+      - "traefik.docker.network=proxy-internal"
+    networks:
+      - proxy-internal
+      - akaunting-backend
+
+  akaunting-db:
+    image: mariadb:10.11
+    container_name: akaunting-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=akaunting
+      - MYSQL_USER=akaunting
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - akaunting-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - akaunting-backend
+
+volumes:
+  akaunting-storage:
+  akaunting-modules:
+  akaunting-db-data:
+
+networks:
+  proxy-internal:
+    external: true
+  akaunting-backend:
+    internal: true
