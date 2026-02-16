@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Firefly III - Personal Finance Manager
-# Deployment: VM 100 (192.168.60.11) - SERVICES VLAN 60
+# Deployment: VM 100 (10.0.60.11) - SERVICES VLAN 60
 # Replaces: Akaunting (abandoned due to poor Docker support)
 
 networks:
@@ -70,7 +70,7 @@ services:
       - firefly-upload:/var/www/html/storage/upload
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.firefly.rule=Host(`firefly.local.codistech.live`)"
+      - "traefik.http.routers.firefly.rule=Host(`firefly.local.example.home`)"
       - "traefik.http.routers.firefly.entrypoints=https"
       - "traefik.http.routers.firefly.tls=true"
       - "traefik.http.routers.firefly.tls.certresolver=cloudflare"
@@ -131,13 +131,13 @@ services:
         condition: service_healthy
     environment:
       - FIREFLY_III_URL=http://firefly-iii:8080
-      - VANITY_URL=https://firefly.local.codistech.live
+      - VANITY_URL=https://firefly.local.example.home
       - FIREFLY_III_ACCESS_TOKEN=${IMPORTER_ACCESS_TOKEN}
       - TRUSTED_PROXIES=**
       - TZ=${TZ:-America/New_York}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.firefly-importer.rule=Host(`firefly-import.local.codistech.live`)"
+      - "traefik.http.routers.firefly-importer.rule=Host(`firefly-import.local.example.home`)"
       - "traefik.http.routers.firefly-importer.entrypoints=https"
       - "traefik.http.routers.firefly-importer.tls=true"
       - "traefik.http.routers.firefly-importer.tls.certresolver=cloudflare"

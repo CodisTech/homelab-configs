@@ -27,13 +27,13 @@ scrape_configs:
 
   - job_name: 'node-pihole'
     static_configs:
-      - targets: ['192.168.0.55:9100']
+      - targets: ['10.0.0.55:9100']
         labels:
           instance: 'pihole-pi'
 
   - job_name: 'node-unraid'
     static_configs:
-      - targets: ['192.168.0.50:9100']
+      - targets: ['10.0.0.50:9100']
         labels:
           instance: 'unraid'
 
@@ -50,7 +50,7 @@ scrape_configs:
       - targets: ['pve-exporter:9221']
     metrics_path: /pve
     params:
-      target: ['192.168.0.90']
+      target: ['10.0.0.90']
 
   - job_name: 'pihole'
     static_configs:

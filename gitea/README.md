@@ -56,7 +56,7 @@ docker-compose up -d
 
 ### SSH Clone
 ```bash
-git clone ssh://git@git.local.codistech.live:2222/user/repo.git
+git clone ssh://git@git.local.example.home:2222/user/repo.git
 ```
 
 ### Push Mirroring to GitHub

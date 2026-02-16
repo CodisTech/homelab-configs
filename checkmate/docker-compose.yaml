@@ -3,7 +3,7 @@ services:
     image: bluewaveuptime/uptime_client:latest
     restart: always
     environment:
-      UPTIME_APP_API_BASE_URL: "https://checkmate.local.codistech.live/api/v1"
+      UPTIME_APP_API_BASE_URL: "https://checkmate.local.example.home/api/v1"
     depends_on:
       - server
     networks:
@@ -15,13 +15,13 @@ services:
 
       # HTTP
       - "traefik.http.routers.checkmate.entrypoints=http"
-      - "traefik.http.routers.checkmate.rule=Host(`checkmate.local.codistech.live`)"
+      - "traefik.http.routers.checkmate.rule=Host(`checkmate.local.example.home`)"
       - "traefik.http.middlewares.checkmate-https.redirectscheme.scheme=https"
       - "traefik.http.routers.checkmate.middlewares=checkmate-https"
 
       # HTTPS
       - "traefik.http.routers.checkmate-secure.entrypoints=https"
-      - "traefik.http.routers.checkmate-secure.rule=Host(`checkmate.local.codistech.live`)"
+      - "traefik.http.routers.checkmate-secure.rule=Host(`checkmate.local.example.home`)"
       - "traefik.http.routers.checkmate-secure.tls=true"
       - "traefik.http.routers.checkmate-secure.tls.certresolver=letsencrypt"
       - "traefik.http.routers.checkmate-secure.service=checkmate"
@@ -44,7 +44,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=proxy-internal"
-      - "traefik.http.routers.checkmate-api.rule=Host(`checkmate.local.codistech.live`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.checkmate-api.rule=Host(`checkmate.local.example.home`) && PathPrefix(`/api`)"
       - "traefik.http.routers.checkmate-api.entrypoints=https"
       - "traefik.http.routers.checkmate-api.tls=true"
       - "traefik.http.routers.checkmate-api.tls.certresolver=letsencrypt"

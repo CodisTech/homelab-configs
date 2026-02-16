@@ -8,8 +8,8 @@ services:
       - USER_UID=1000
       - USER_GID=1000
       - GITEA__database__DB_TYPE=sqlite3
-      - GITEA__server__ROOT_URL=https://git.local.codistech.live
-      - GITEA__server__SSH_DOMAIN=git.local.codistech.live
+      - GITEA__server__ROOT_URL=https://git.local.example.home
+      - GITEA__server__SSH_DOMAIN=git.local.example.home
       - GITEA__server__SSH_PORT=2222
     volumes:
       - ./data:/data
@@ -22,7 +22,7 @@ services:
       - proxy-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gitea.rule=Host(`git.local.codistech.live`)"
+      - "traefik.http.routers.gitea.rule=Host(`git.local.example.home`)"
       - "traefik.http.routers.gitea.entrypoints=https"
       - "traefik.http.routers.gitea.tls.certresolver=cloudflare"
       - "traefik.http.services.gitea.loadbalancer.server.port=3000"

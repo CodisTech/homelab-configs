@@ -62,8 +62,8 @@ docker-compose up -d
 
 | URL | Purpose |
 |-----|---------|
-| `n8n.local.codistech.live` | Internal editor access |
-| `n8n-webhook.codistech.live` | External webhook endpoint |
+| `n8n.local.example.home` | Internal editor access |
+| `n8n-webhook.example.home` | External webhook endpoint |
 
 ## Use Cases
 

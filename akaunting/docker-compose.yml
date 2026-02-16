@@ -4,7 +4,7 @@ services:
     container_name: akaunting
     restart: unless-stopped
     environment:
-      - APP_URL=https://akaunting.local.codistech.live
+      - APP_URL=https://akaunting.local.example.home
       - DB_HOST=akaunting-db
       - DB_PORT=3306
       - DB_DATABASE=akaunting
@@ -23,7 +23,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.akaunting.rule=Host(`akaunting.local.codistech.live`)"
+      - "traefik.http.routers.akaunting.rule=Host(`akaunting.local.example.home`)"
       - "traefik.http.routers.akaunting.entrypoints=https"
       - "traefik.http.routers.akaunting.tls=true"
       - "traefik.http.routers.akaunting.tls.certresolver=cloudflare"

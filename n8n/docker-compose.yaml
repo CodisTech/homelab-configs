@@ -6,11 +6,11 @@ services:
     env_file:
       - .env
     environment:
-      - N8N_HOST=n8n.local.codistech.live
+      - N8N_HOST=n8n.local.example.home
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - N8N_EDITOR_BASE_URL=https://n8n.local.codistech.live/
-      - WEBHOOK_URL=https://n8n-webhook.codistech.live/
+      - N8N_EDITOR_BASE_URL=https://n8n.local.example.home/
+      - WEBHOOK_URL=https://n8n-webhook.example.home/
       - GENERIC_TIMEZONE=America/Detroit
       - N8N_PROXY_HOPS=1
       - N8N_USER_MANAGEMENT_DISABLED=true    
@@ -22,16 +22,16 @@ services:
       - proxy-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.n8n.rule=Host(`n8n.local.codistech.live`)"                        
+      - "traefik.http.routers.n8n.rule=Host(`n8n.local.example.home`)"                        
       - "traefik.http.routers.n8n.entrypoints=https"                                            
       - "traefik.http.routers.n8n.tls.certresolver=cloudflare"                                  
       - "traefik.http.routers.n8n.middlewares=authentik@file"                                   
-      - "traefik.http.routers.n8n-webhook.rule=Host(`n8n-webhook.codistech.live`)"              
+      - "traefik.http.routers.n8n-webhook.rule=Host(`n8n-webhook.example.home`)"              
       - "traefik.http.routers.n8n-webhook.entrypoints=https"                                    
       - "traefik.http.routers.n8n-webhook.tls.certresolver=cloudflare"                          
       - "traefik.http.services.n8n.loadbalancer.server.port=5678"                               
       - "traefik.docker.network=proxy-internal"     
-      - "traefik.http.routers.n8n-api.rule=Host(`n8n.local.codistech.live`) && PathPrefix(`/api`)"                
+      - "traefik.http.routers.n8n-api.rule=Host(`n8n.local.example.home`) && PathPrefix(`/api`)"                
       - "traefik.http.routers.n8n-api.entrypoints=https"                               
       - "traefik.http.routers.n8n-api.tls.certresolver=cloudflare"                         
       - "traefik.http.routers.n8n-api.priority=100"   

@@ -42,7 +42,7 @@ http:
     pfsense:
       entryPoints:
         - "https"
-      rule: "Host(`pfsense.local.codistech.live`)"
+      rule: "Host(`pfsense.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -52,7 +52,7 @@ http:
     proxmox:
       entryPoints:
         - "https"
-      rule: "Host(`proxmox.local.codistech.live`)"
+      rule: "Host(`proxmox.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -62,7 +62,7 @@ http:
     unifi:
       entryPoints:
         - "https"
-      rule: "Host(`unifi.local.codistech.live`)"
+      rule: "Host(`unifi.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -72,7 +72,7 @@ http:
     unraid:
       entryPoints:
         - "https"
-      rule: "Host(`unraid.local.codistech.live`)"
+      rule: "Host(`unraid.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -82,7 +82,7 @@ http:
     pihole1:
       entryPoints:
         - "https"
-      rule: "Host(`pihole1.local.codistech.live`)"
+      rule: "Host(`pihole1.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -92,7 +92,7 @@ http:
     pihole2:
       entryPoints:
         - "https"
-      rule: "Host(`pihole2.local.codistech.live`)"
+      rule: "Host(`pihole2.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -102,7 +102,7 @@ http:
     nextcloud:
       entryPoints:
         - "https"
-      rule: "Host(`nextcloud.local.codistech.live`)"
+      rule: "Host(`nextcloud.local.example.home`)"
       middlewares:
         - https-redirectscheme
         - crowdsec-bouncer
@@ -114,43 +114,43 @@ http:
     pfsense:
       loadBalancer:
         servers:
-          - url: "https://192.168.0.1:10443"
+          - url: "https://10.0.0.1:10443"
         passHostHeader: true
 
     proxmox:
       loadBalancer:
         servers:
-          - url: "https://192.168.0.90:8006"
+          - url: "https://10.0.0.90:8006"
         passHostHeader: true
 
     unifi:
       loadBalancer:
         servers:
-          - url: "https://192.168.0.100:11443"
+          - url: "https://10.0.0.100:11443"
         serversTransport: unifi-transport
 
     unraid:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.50:8085"
+          - url: "http://10.0.0.50:8085"
         passHostHeader: true
 
     pihole1:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.55:8080"
+          - url: "http://10.0.0.55:8080"
         passHostHeader: true
 
     pihole2:
       loadBalancer:
         servers:
-          - url: "http://192.168.0.70:8080"
+          - url: "http://10.0.0.70:8080"
         passHostHeader: true
 
     nextcloud:
       loadBalancer:
         servers:
-          - url: "https://192.168.0.50:444"
+          - url: "https://10.0.0.50:444"
         serversTransport: nextcloud-transport    
 
   serversTransports:

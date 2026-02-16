@@ -11,11 +11,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.heimdall.entrypoints=http"
-      - "traefik.http.routers.heimdall.rule=Host(`heimdall.local.codistech.live`)"
+      - "traefik.http.routers.heimdall.rule=Host(`heimdall.local.example.home`)"
       - "traefik.http.middlewares.heimdall-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.heimdall.middlewares=heimdall-https-redirect"
       - "traefik.http.routers.heimdall-secure.entrypoints=https"
-      - "traefik.http.routers.heimdall-secure.rule=Host(`heimdall.local.codistech.live`)"
+      - "traefik.http.routers.heimdall-secure.rule=Host(`heimdall.local.example.home`)"
       - "traefik.http.routers.heimdall-secure.tls=true"
       - "traefik.http.routers.heimdall-secure.tls.certresolver=cloudflare"
       - "traefik.http.routers.heimdall-secure.service=heimdall"

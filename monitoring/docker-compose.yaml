@@ -24,7 +24,7 @@ services:
           - prometheus
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.codistech.live`)"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.example.home`)"
       - "traefik.http.routers.prometheus.entrypoints=https"
       - "traefik.http.routers.prometheus.tls.certresolver=cloudflare"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
@@ -64,7 +64,7 @@ services:
           - grafana
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.local.codistech.live`)"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.local.example.home`)"
       - "traefik.http.routers.grafana.entrypoints=https"
       - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
@@ -93,7 +93,7 @@ services:
     ports:
       - "9617:9617"
     environment:
-      - PIHOLE_HOSTNAME=192.168.x.x
+      - PIHOLE_HOSTNAME=10.0.0.x
       - PIHOLE_PORT=8080
       - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
     networks:

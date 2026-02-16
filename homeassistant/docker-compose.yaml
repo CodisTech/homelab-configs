@@ -16,11 +16,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.homeassistant.entrypoints=http"
-      - "traefik.http.routers.homeassistant.rule=Host(`ha.local.codistech.live`)"
+      - "traefik.http.routers.homeassistant.rule=Host(`ha.local.example.home`)"
       - "traefik.http.middlewares.homeassistant-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.homeassistant.middlewares=homeassistant-https-redirect"
       - "traefik.http.routers.homeassistant-secure.entrypoints=https"
-      - "traefik.http.routers.homeassistant-secure.rule=Host(`ha.local.codistech.live`)"
+      - "traefik.http.routers.homeassistant-secure.rule=Host(`ha.local.example.home`)"
       - "traefik.http.routers.homeassistant-secure.tls=true"
       - "traefik.http.routers.homeassistant-secure.tls.certresolver=cloudflare"
       - "traefik.http.routers.homeassistant-secure.service=homeassistant"

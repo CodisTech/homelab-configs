@@ -24,7 +24,7 @@ services:
           - prometheus
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.codistech.live`)"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.example.home`)"
       - "traefik.http.routers.prometheus.entrypoints=https"
       - "traefik.http.routers.prometheus.tls.certresolver=cloudflare"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
@@ -53,17 +53,17 @@ services:
       - "3000:3000"
     environment:
        - GF_SERVER_HTTP_PORT=3000
-       - GF_SERVER_ROOT_URL=https://grafana.local.codistech.live
+       - GF_SERVER_ROOT_URL=https://grafana.local.example.home
       # Authentik SSO
        - GF_AUTH_GENERIC_OAUTH_ENABLED=true
        - GF_AUTH_GENERIC_OAUTH_NAME=Authentik
        - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=5xueMF7bBsLLP3JIwx6REEa8BgjDNOPTQ5cQIRiN
        - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_CLIENT_SECRET}
        - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
-       - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.local.codistech.live/application/o/authorize/
-       - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.local.codistech.live/application/o/token/
-       - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.local.codistech.live/application/o/userinfo/
-       - GF_AUTH_SIGNOUT_REDIRECT_URL=https://auth.local.codistech.live/application/o/grafana/end-session/
+       - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.local.example.home/application/o/authorize/
+       - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.local.example.home/application/o/token/
+       - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.local.example.home/application/o/userinfo/
+       - GF_AUTH_SIGNOUT_REDIRECT_URL=https://auth.local.example.home/application/o/grafana/end-session/
        - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
        - GF_AUTH_OAUTH_AUTO_LOGIN=true
        - GF_AUTH_DISABLE_LOGIN_FORM=true
@@ -79,7 +79,7 @@ services:
           - grafana
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.local.codistech.live`)"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.local.example.home`)"
       - "traefik.http.routers.grafana.entrypoints=https"
       - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
@@ -109,7 +109,7 @@ services:
     ports:
       - "9617:9617"
     environment:
-      - PIHOLE_HOSTNAME=pihole1.local.codistech.live
+      - PIHOLE_HOSTNAME=pihole1.local.example.home
       - PIHOLE_PORT=8080
       - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
     networks:

@@ -104,7 +104,7 @@ services:
       - proxy-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.wazuh.rule=Host(`wazuh.local.codistech.live`)"
+      - "traefik.http.routers.wazuh.rule=Host(`wazuh.local.example.home`)"
       - "traefik.http.routers.wazuh.entrypoints=https"
       - "traefik.http.routers.wazuh.tls.certresolver=cloudflare"
       - "traefik.http.services.wazuh.loadbalancer.server.port=5601"
