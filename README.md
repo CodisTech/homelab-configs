@@ -1,87 +1,109 @@
-# Homelab Configs
+# Homelab Infrastructure as Code
 
-Infrastructure as Code for a security-focused homelab environment. This repository contains Docker Compose configurations, custom rules, and documentation for self-hosted services with an emphasis on defense-in-depth principles.
+> Production-grade, security-first homelab running 20+ self-hosted services across a segmented network with defense-in-depth architecture, GitOps workflow, and NIST 800-53 control mapping.
 
-## About
+This is not a collection of tutorials. This is a living infrastructure that I operate, monitor, and secure daily — applying the same principles I used managing cybersecurity operations aboard USS Nimitz (CVN-68) to a self-hosted environment.
 
-This homelab serves as both a production environment and a learning platform for implementing enterprise security concepts at home scale. Configurations follow security best practices and map to NIST 800-53 controls where applicable.
+## Why This Exists
 
-## Services
+Enterprise security concepts do not require enterprise budgets. This homelab demonstrates that defense-in-depth, zero-trust access, centralized monitoring, and compliance-ready infrastructure can be built with open-source tools and thoughtful architecture.
 
-| Service | Purpose | Docs |
-|---------|---------|------|
-| [Wazuh](wazuh/) | SIEM, log analysis, FIM | [README](wazuh/README.md) |
-| [Traefik](traefik/) | Reverse proxy, TLS, CrowdSec | [README](traefik/README.md) |
-| [Authentik](authentik/) | Identity provider, SSO, MFA | [README](authentik/README.md) |
-| [Monitoring](opensense-monitoring/) | Prometheus, Grafana, Loki | [README](opensense-monitoring/README.md) |
-| [n8n](n8n/) | Workflow automation | [README](n8n/README.md) |
-| [Home Assistant](homeassistant/) | Home automation, voice control | [README](homeassistant/README.md) |
-| [Gitea](gitea/) | Self-hosted Git | [README](gitea/README.md) |
-| [Pi-hole](pihole/) | DNS filtering | [README](pihole/README.md) |
-| [Portainer](portainer/) | Container management | [README](portainer/README.md) |
-| [Checkmate](checkmate/) | Uptime monitoring | [README](checkmate/README.md) |
-| [Capture](capture/) | Screenshot service | [README](capture/README.md) |
-| [Media](media/) | Plex, Emby | [README](media/README.md) |
-| [Heimdall](heimdall/) | App dashboard | [README](heimdall/README.md) |
-| [Nginx](nginx/) | Web server | [README](nginx/README.md) |
-| [Inventory](inventory/) | Asset management | [README](inventory/README.md) |
-| [Games](games/) | Minecraft server | [README](games/README.md) |
-| [Netdata](monitoring/) | Real-time metrics | [README](monitoring/README.md) |
-| [Diun](diun/) | Container update notifications | [README](diun/README.md) |
-| [Renovate](renovate/) | Automated dependency PRs | [README](renovate/README.md) |
+Every configuration in this repository is production — these are the actual files running my infrastructure, version-controlled and continuously maintained.
 
 ## Architecture
+
 ```
 Internet
     │
     ▼
-┌──────────┐     ┌───────────┐     ┌───────────┐
-│ Traefik  │────▶│ CrowdSec  │────▶│ Authentik │
-└────┬─────┘     └───────────┘     └───────────┘
-     │
-     ├──▶ Wazuh (SIEM)
-     ├──▶ Grafana (Monitoring)
-     ├──▶ Gitea (Git)
-     ├──▶ n8n (Automation)
-     ├──▶ Home Assistant (IoT)
-     ├──▶ Proxmox (Virtualization)
-     ├──▶ Unraid (Storage)
-     ├──▶ pfSense (Firewall)
-     ├──▶ Unifi (Network)
-     ├──▶ Nextcloud (Files)
-     ├──▶ Pi-hole x2 (DNS)
-     ├──▶ Portainer (Containers)
-     ├──▶ Heimdall (Dashboard)
-     └──▶ Media Services
+┌──────────────────────────────────────────────────────┐
+│                   Edge Layer                          │
+│  Cloudflare ──▶ Traefik ──▶ CrowdSec ──▶ Authentik  │
+│  (CDN/WAF)     (Reverse     (Threat      (SSO/MFA)  │
+│                 Proxy)       Detection)              │
+└──────────────────────┬───────────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────────┐
+│              Network Segmentation                     │
+│                                                       │
+│  VLAN 10 ─ Management    VLAN 30 ─ IoT/Smart Home    │
+│  VLAN 20 ─ Services      VLAN 40 ─ Business (CRL)   │
+│                                                       │
+└──────────────────────┬───────────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────────┐
+│              Security Monitoring                      │
+│                                                       │
+│  Wazuh SIEM ─── Prometheus/Grafana ─── Pi-hole DNS   │
+│  (2,337 vulns    (Metrics &             (DNS          │
+│   triaged)        Dashboards)            Filtering)   │
+│                                                       │
+└──────────────────────┬───────────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────────┐
+│              Hypervisors & Storage                     │
+│                                                       │
+│  Proxmox VE (256GB + 128GB RAM)  ─── Unraid (80TB)  │
+│                                                       │
+└──────────────────────────────────────────────────────┘
 ```
+
+## Services
+
+### Security and Access Control
+
+| Service | Purpose | Key Detail |
+|---------|---------|------------|
+| [Wazuh](wazuh/) | SIEM, log analysis, FIM, vulnerability detection | 2,337 vulnerabilities triaged, NIST 800-53 mapped |
+| [Traefik](traefik/) | Reverse proxy, automatic TLS, request routing | Integrated with CrowdSec and Cloudflare |
+| [Authentik](authentik/) | Identity provider, SSO, MFA enforcement | Zero-trust access for all services |
+| [Pi-hole](pihole/) | DNS filtering and ad blocking | Dual-instance for redundancy |
+
+### Monitoring and Observability
+
+| Service | Purpose | Key Detail |
+|---------|---------|------------|
+| [Prometheus/Grafana](opensense-monitoring/) | Metrics collection and visualization | Custom dashboards for infrastructure health |
+| [Loki/Promtail](opensense-monitoring/) | Log aggregation and search | Complements Wazuh for operational logs |
+| [Checkmate](checkmate/) | Uptime monitoring | Service availability tracking |
+| [Netdata](monitoring/) | Real-time system metrics | Per-host performance monitoring |
+
+### Automation and DevOps
+
+| Service | Purpose | Key Detail |
+|---------|---------|------------|
+| [n8n](n8n/) | Workflow automation | Content publishing, alerting, business processes |
+| [Renovate](renovate/) | Automated dependency updates | Creates PRs for Docker image updates |
+| [Diun](diun/) | Container update notifications | Telegram alerts for new image versions |
+| [Gitea](gitea/) | Self-hosted Git | Internal source of truth for all configs |
+
+### Applications
+
+| Service | Purpose | Key Detail |
+|---------|---------|------------|
+| [Nextcloud](nextcloud/) | File sync and collaboration | Self-hosted alternative to Google Drive |
+| [Home Assistant](homeassistant/) | Smart home automation | Matter/Thread architecture with voice control |
+| [Firefly III](firefly-iii/) | Financial management | Self-hosted accounting with Profit First methodology |
+| [Media](media/) | Plex, Emby media servers | Centralized media management |
 
 ## Security Features
 
-- **Zero-trust access** — Services behind Authentik SSO
-- **TLS everywhere** — Automatic certificates via Traefik + Cloudflare
-- **Threat detection** — CrowdSec behavioral analysis and IP blocking
-- **Centralized logging** — Logs shipped to Wazuh SIEM and Loki
-- **Network segmentation** — Isolated Docker networks per service group
-- **Secrets management** — Environment variables, never committed to git
+**Zero-trust access** — Every service sits behind Authentik SSO with MFA enforcement. No service is directly exposed without authentication.
 
-## Quick Start
-```bash
-# Clone the repo
-git clone https://github.com/codistech/homelab-configs.git
-cd homelab-configs
+**TLS everywhere** — Traefik automatically provisions and renews certificates via Cloudflare DNS challenge. All internal and external traffic is encrypted.
 
-# Deploy a service
-cd <service>
-cp .env.example .env
-# Edit .env with your values
-docker-compose up -d
-```
+**Behavioral threat detection** — CrowdSec analyzes access patterns and automatically blocks malicious IPs based on community threat intelligence.
+
+**Centralized SIEM** — All logs ship to Wazuh for correlation, alerting, and compliance reporting. File integrity monitoring detects unauthorized changes.
+
+**Network segmentation** — Isolated VLANs with firewall rules controlling inter-segment traffic. IoT devices cannot reach management infrastructure.
+
+**Secrets management** — Environment variables for all sensitive configuration. `.env.example` templates provided, actual secrets never committed to git.
+
+**Automated patching workflow** — Diun detects available container updates, Renovate creates pull requests, human reviews and merges, production pulls updated images.
 
 ## GitOps Workflow
 
-This repository follows a GitOps approach where Gitea is the source of truth for all infrastructure configurations.
-
-### Update Flow
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │    Diun     │────▶│  Telegram   │     │  Renovate   │
@@ -89,8 +111,7 @@ This repository follows a GitOps approach where Gitea is the source of truth for
 └─────────────┘     └─────────────┘     └──────┬──────┘
                                                │
                                         ┌──────▼──────┐
-                                        │   Gitea     │
-                                        │    (PR)     │
+                                        │   Gitea PR  │
                                         └──────┬──────┘
                                                │
                                         ┌──────▼──────┐
@@ -100,36 +121,28 @@ This repository follows a GitOps approach where Gitea is the source of truth for
                                                │
                                         ┌──────▼──────┐
                                         │  Production │
-                                        │  git pull   │
-                                        │  docker up  │
+                                        │  Deploy     │
                                         └─────────────┘
 ```
 
-### Daily Schedule
+Every infrastructure change is tracked, reviewed, and reversible.
 
-| Time | Service | Action |
-|------|---------|--------|
-| 8:00 AM | Diun | Scans containers, sends Telegram alert if updates exist |
-| 9:00 AM | Renovate | Creates PRs in Gitea for outdated images |
+## Quick Start
 
-### Deployment Process
-
-1. Review PR in Gitea
-2. Merge to main branch
-3. On production server:
 ```bash
-   cd ~/docker_volumes/<service>
-   docker-compose pull
-   docker-compose up -d
+git clone https://github.com/CodisTech/homelab-configs.git
+cd homelab-configs/<service>
+cp .env.example .env
+# Edit .env with your values
+docker-compose up -d
 ```
 
-### Benefits
+Each service directory contains its own README with specific deployment instructions, configuration details, and lessons learned.
 
-- **Version Control** — All changes tracked in git
-- **Review Process** — PRs enable review before deployment
-- **Rollback** — Easy to revert with `git revert`
-- **Audit Trail** — Complete history of infrastructure changes
-- **No Auto-Updates** — You control when changes go live
+## Related Projects
+
+- [Policy-as-Code Framework](https://github.com/CodisTech/policy-as-code) — Compliance policies defined as code using OPA, InSpec, and Sentinel
+- [CyberReadyLabs](https://cyberreadylabs.com) — Cybersecurity consulting built on this infrastructure
 
 ## License
 
