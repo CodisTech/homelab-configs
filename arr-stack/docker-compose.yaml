@@ -3,6 +3,7 @@ services:
     image: binhex/arch-qbittorrentvpn
     container_name: qbittorrent
     restart: unless-stopped
+    privileged: true  
     cap_add:
       - NET_ADMIN
     sysctls:
@@ -18,7 +19,7 @@ services:
       - VPN_PASS=${VPN_PASS}
       - STRICT_PORT_FORWARD=yes
       - ENABLE_PRIVOXY=yes
-      - LAN_NETWORK=10.0.60.0/24,10.0.0.x/24
+      - LAN_NETWORK=10.0.60.0/24,10.0.0.0/24,172.21.0.0/16
       - NAME_SERVERS=1.1.1.1,1.0.0.1
       - UMASK=000
       - DEBUG=false
@@ -136,6 +137,31 @@ services:
       - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
       - "traefik.docker.network=proxy-internal"
 
+  flaresolverr:                                                                                                              
+      image: ghcr.io/flaresolverr/flaresolverr:latest                                                                          
+      container_name: flaresolverr                                                                                             
+      restart: unless-stopped                                                                                                  
+      environment:                                                                                                             
+        - LOG_LEVEL=info                                                                                                       
+        - TZ=America/New_York                                                                                                  
+      ports:                                                                                                                   
+        - 8191:8191                                                                                                            
+      networks:                                                                                                                
+        - arr-internal                                                                                                         
+                                                                                                                               
+  notifiarr:                                                                                                                 
+      image: golift/notifiarr                                                                                                  
+      container_name: notifiarr                                                                                                
+      restart: unless-stopped                                                                                                  
+      environment:                                                                                                             
+        - DN_API_KEY=${NOTIFIARR_API_KEY}                                                                                      
+        - TZ=America/New_York                                                                                                  
+      volumes:                                                                                                                 
+        - ./notifiarr-config:/config                                                                                           
+      ports:                                                                                                                   
+        - 5454:5454                                                                                                            
+      networks:                                                                                                                
+        - arr-internal
 networks:
   arr-internal:
     driver: bridge
