@@ -14,11 +14,12 @@ services:
       - TZ=America/New_York
       - VPN_ENABLED=yes
       - VPN_PROV=pia
-      - VPN_CLIENT=openvpn
+      - VPN_CLIENT=wireguard
       - VPN_USER=${VPN_USER}
       - VPN_PASS=${VPN_PASS}
       - STRICT_PORT_FORWARD=yes
       - ENABLE_PRIVOXY=yes
+      - ENABLE_STARTUP_SCRIPTS=yes
       - LAN_NETWORK=192.168.60.0/24,192.168.x.x/24,172.21.0.0/16
       - NAME_SERVERS=1.1.1.1,1.0.0.1
       - UMASK=000
@@ -136,6 +137,41 @@ services:
       - "traefik.http.routers.jellyseerr.tls=true"
       - "traefik.http.services.jellyseerr.loadbalancer.server.port=5055"
       - "traefik.docker.network=proxy-internal"
+
+  flaresolverr:                              
+      image: ghcr.io/flaresolverr/flaresolverr:latest
+      container_name: flaresolverr
+      restart: unless-stopped
+      environment:
+        - LOG_LEVEL=info
+        - TZ=America/New_York
+      ports:
+        - 8191:8191
+      networks:
+        - arr-internal
+
+  notifiarr:
+      image: golift/notifiarr
+      container_name: notifiarr
+      restart: unless-stopped
+      environment:
+        - DN_API_KEY=${NOTIFIARR_API_KEY}
+        - DN_UI_PASSWORD=${NOTIFIARR_PASSWORD}
+        - TZ=America/New_York   
+      volumes:
+        - ./notifiarr-config:/config
+      ports:   
+        - 5454:5454
+      networks:
+        - arr-internal
+        - proxy-internal
+      labels:
+        - "traefik.enable=true"                          
+        - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.local.codistech.live`)"
+        - "traefik.http.routers.notifiarr.entrypoints=https"
+        - "traefik.http.routers.notifiarr.tls=true"
+        - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
+        - "traefik.docker.network=proxy-internal"
 
 networks:
   arr-internal:
