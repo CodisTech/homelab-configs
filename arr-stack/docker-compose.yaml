@@ -160,8 +160,16 @@ services:
         - ./notifiarr-config:/config                                                                                           
       ports:                                                                                                                   
         - 5454:5454                                                                                                            
-      networks:                                                                                                                
+      networks:
         - arr-internal
+        - proxy-internal
+      labels:
+        - "traefik.enable=true"                          
+        - "traefik.http.routers.notifiarr.rule=Host(`notifiarr.local.codistech.live`)"
+        - "traefik.http.routers.notifiarr.entrypoints=https"
+        - "traefik.http.routers.notifiarr.tls=true"
+        - "traefik.http.services.notifiarr.loadbalancer.server.port=5454"
+        - "traefik.docker.network=proxy-internal"
 networks:
   arr-internal:
     driver: bridge
