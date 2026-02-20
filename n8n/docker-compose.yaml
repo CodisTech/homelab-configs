@@ -16,6 +16,7 @@ services:
       - N8N_USER_MANAGEMENT_DISABLED=true    
     volumes:
       - ./data:/home/node/.n8n
+      - ./files:/home/node/.n8n-files
     ports:
       - "5678:5678"
     networks:
