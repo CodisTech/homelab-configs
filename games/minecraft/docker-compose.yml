@@ -19,6 +19,31 @@ services:
       - proxy-internal
       - minecraft
 
+  minecraft-2:
+    image: itzg/minecraft-server
+    container_name: minecraft-2
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "1.21.11"
+      MEMORY: "8G"
+      DIFFICULTY: "normal"
+    ports:
+      - "25566:25565"
+      - "19133:19132/udp"
+    volumes:
+      - ./data2:/data
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+    networks:
+      - proxy-internal
+      - minecraft
+
 networks:
   proxy-internal:
     external: true
