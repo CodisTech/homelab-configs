@@ -1,0 +1,15 @@
+services:
+  ytdl-material:
+    image: tzahi12345/youtubedl-material:latest
+    container_name: ytdl-material
+    restart: unless-stopped
+    ports:
+      - 8998:17442
+    volumes:
+      - ./appdata:/app/appdata
+      - /mnt/media/music:/app/audio
+      - /mnt/media/youtube:/app/video
+      - ./subscriptions:/app/subscriptions
+    environment:
+      - UID=1000
+      - GID=1000

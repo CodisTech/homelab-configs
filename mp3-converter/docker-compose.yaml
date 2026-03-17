@@ -1,0 +1,8 @@
+services:
+  mp3-converter:
+    build: .
+    container_name: mp3-converter
+    restart: unless-stopped
+    volumes:
+      - /mnt/media/youtube:/input:ro
+      - /mnt/media/music:/output
