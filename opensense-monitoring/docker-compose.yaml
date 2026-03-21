@@ -109,9 +109,11 @@ services:
     ports:
       - "9617:9617"
     environment:
-      - PIHOLE_HOSTNAME=pihole1.local.codistech.live
+      - PIHOLE_HOSTNAME=192.168.60.55
       - PIHOLE_PORT=8080
       - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  
     networks:
       monitoring:
         aliases:
