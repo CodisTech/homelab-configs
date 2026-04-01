@@ -24,8 +24,8 @@ services:
     container_name: minecraft-2
     environment:
       EULA: "TRUE"
-      TYPE: "PAPER"
-      VERSION: "1.21.11"
+      TYPE: "VANILLA"
+      VERSION: "26.1"
       MEMORY: "8G"
       DIFFICULTY: "normal"
     ports:
