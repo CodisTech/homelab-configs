@@ -14,7 +14,8 @@ services:
       - GENERIC_TIMEZONE=America/Detroit
       - N8N_PROXY_HOPS=1
       - N8N_USER_MANAGEMENT_DISABLED=true
-      - NODE_FUNCTION_ALLOW_BUILTIN=crypto    
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto,child_process    
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
     volumes:
       - ./data:/home/node/.n8n
       - ./files:/home/node/.n8n-files 
