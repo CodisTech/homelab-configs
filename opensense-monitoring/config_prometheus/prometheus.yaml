@@ -1,0 +1,130 @@
+  global:                                                                                                                      
+    scrape_interval: 15s                                                                                                       
+    evaluation_interval: 15s                                                                                                   
+  alerting:                                                                                                                    
+    alertmanagers:                                                                                                             
+      - static_configs:                                                                                                        
+          - targets: ['alertmanager:9093']                                                                                     
+  rule_files:                                                                                                                  
+    - /etc/prometheus/rules/*.yml                                                                                              
+  scrape_configs:                                                                                                              
+    - job_name: 'prometheus'                                                                                                   
+      static_configs:                                                                                                          
+        - targets: ['localhost:9090']                                                                                          
+    - job_name: 'alertmanager'                                                                                                 
+      static_configs:                                                                                                          
+        - targets: ['alertmanager:9093']                                                                                       
+    - job_name: 'node-docker'                                                                                                  
+      static_configs:                                                                                                          
+        - targets: ['node-exporter:9100']                                                                                      
+    - job_name: 'node-pihole'                                                                                                  
+      static_configs:                                                                                                          
+        - targets: ['192.168.60.55:9100']                                                                                      
+    - job_name: 'loki'                                                                                                         
+      scheme: https
+      tls_config:
+        insecure_skip_verify: true
+      static_configs:                                                                                                          
+        - targets: ['loki:3100']                                                                                               
+    - job_name: 'traefik'                                                                                                      
+      static_configs:                                                                                                          
+        - targets: ['traefik:8082']                                                                                            
+    - job_name: 'proxmox'
+      metrics_path: /pve
+      static_configs:
+        - targets: ['192.168.60.10']
+          labels:
+            pve_node: server-a
+        - targets: ['192.168.60.9']
+          labels:
+            pve_node: server-c
+        - targets: ['192.168.60.8']
+          labels:
+            pve_node: server-d
+      relabel_configs:
+        - source_labels: [__address__]
+          target_label: __param_target
+        - source_labels: [__param_target]
+          target_label: instance
+        - target_label: __address__
+          replacement: pve-exporter:9221
+    - job_name: 'pihole'                                                                                                       
+      static_configs:                                                                                                          
+        - targets: ['pihole-exporter:9617']                                                                                    
+      metric_relabel_configs:                                                                                                  
+        - source_labels: [hostname]                                                                                            
+          target_label: hostname                                                                                               
+          replacement: 'pihole'                                                                                                
+    - job_name: 'crowdsec'                                                                                                     
+      static_configs:                                                                                                          
+        - targets: ['crowdsec:6060']                                                                                           
+    - job_name: 'cadvisor'                                                                                                     
+      static_configs:                                                                                                          
+        - targets: ['cadvisor:8080']                                                                                           
+    - job_name: 'opnsense'                                                                                                     
+      static_configs:                                                                                                          
+        - targets: ['192.168.0.1:9100']                                                                                        
+    - job_name: 'blackbox-http'                                                                                                
+      metrics_path: /probe                                                                                                     
+      params:                                                                                                                  
+        module: [http_2xx]                                                                                                     
+      static_configs:                                                                                                          
+        - targets:                                                                                                             
+            - https://auth.local.codistech.live                                                                                
+            - https://checkmate.local.codistech.live                                                                           
+            - https://git.local.codistech.live                                                                                 
+            - https://grafana.local.codistech.live                                                                             
+            - https://ha.local.codistech.live                                                                                  
+            - https://heimdall.local.codistech.live                                                                            
+            - https://n8n.local.codistech.live                                                                                 
+            - https://nextcloud.local.codistech.live                                                                           
+            - https://nginx.local.codistech.live                                                                               
+            - https://opnsense.local.codistech.live                                                                            
+            - https://pihole1.local.codistech.live/admin/login                                                                 
+            - https://pihole2.local.codistech.live/admin/login                                                                 
+            - https://portainer.local.codistech.live                                                                           
+            - https://prometheus.local.codistech.live                                                                          
+            - https://proxmox.local.codistech.live                                                                             
+            - https://traefik.local.codistech.live                                                                             
+            - https://unifi.local.codistech.live                                                                               
+            - https://wazuh.local.codistech.live                                                                               
+            - https://cyberreadylabs.com
+      relabel_configs:                                                                                                         
+        - source_labels: [__address__]                                                                                         
+          target_label: __param_target                                                                                         
+        - source_labels: [__param_target]                                                                                      
+          target_label: instance                                                                                               
+        - target_label: __address__                                                                                            
+          replacement: blackbox:9115                                                                                           
+    - job_name: 'speedtest'                                                                                                    
+      scrape_interval: 1h                                                                                                      
+      scrape_timeout: 120s                                                                                                     
+      static_configs:                                                                                                          
+        - targets: ['speedtest-exporter:9798']                                                                                 
+                                                               
+           
+    - job_name: 'nvidia-gpu'
+      static_configs:
+        - targets: ['192.168.60.22:30940']
+          labels:
+            instance: 'k3s-worker-1-gpu'
+    - job_name: 'node-k3s-control'
+      static_configs:
+        - targets: ['192.168.60.21:9100']
+          labels:
+            instance: 'k3s-control'
+    - job_name: 'node-k3s-worker-1'
+      static_configs:
+        - targets: ['192.168.60.22:9100']
+          labels:
+            instance: 'k3s-worker-1'
+    - job_name: 'node-k3s-worker-2'
+      static_configs:
+        - targets: ['192.168.60.23:9100']
+          labels:
+            instance: 'k3s-worker-2'
+    - job_name: 'node-k3s-worker-3'
+      static_configs:
+        - targets: ['192.168.60.24:9100']
+          labels:
+            instance: 'k3s-worker-3'

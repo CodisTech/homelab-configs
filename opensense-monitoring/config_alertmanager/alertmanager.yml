@@ -1,0 +1,65 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: telegram-default
+  group_by: [alertname, instance]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: telegram-critical
+      group_wait: 10s
+      group_interval: 5m
+      repeat_interval: 30m
+    - matchers:
+        - severity="warning"
+      receiver: telegram-warning
+      group_interval: 10m
+      repeat_interval: 4h
+
+receivers:
+  - name: telegram-default
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram_token
+        chat_id: 1290054454
+        send_resolved: true
+        message: |-
+          [{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+          {{ range .Alerts -}}
+          - {{ if .Labels.instance }}{{ .Labels.instance }}: {{ end }}{{ .Annotations.summary }}{{ with .Annotations.description }}
+            {{ . }}{{ end }}
+          {{ end }}
+
+  - name: telegram-critical
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram_token
+        chat_id: 1290054454
+        send_resolved: true
+        message: |-
+          [CRITICAL/{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+          {{ range .Alerts -}}
+          - {{ if .Labels.instance }}{{ .Labels.instance }}: {{ end }}{{ .Annotations.summary }}{{ with .Annotations.description }}
+            {{ . }}{{ end }}
+          {{ end }}
+
+  - name: telegram-warning
+    telegram_configs:
+      - bot_token_file: /etc/alertmanager/secrets/telegram_token
+        chat_id: 1290054454
+        send_resolved: true
+        message: |-
+          [WARNING/{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}
+          {{ range .Alerts -}}
+          - {{ if .Labels.instance }}{{ .Labels.instance }}: {{ end }}{{ .Annotations.summary }}{{ with .Annotations.description }}
+            {{ . }}{{ end }}
+          {{ end }}
+
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: [alertname, instance]
