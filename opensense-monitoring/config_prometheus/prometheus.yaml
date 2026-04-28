@@ -128,3 +128,23 @@
         - targets: ['192.168.60.24:9100']
           labels:
             instance: 'k3s-worker-3'
+    - job_name: 'k3s-kube-state-metrics'
+      static_configs:
+        - targets: ['192.168.60.22:30960']
+          labels:
+            cluster: k3s
+    - job_name: 'k3s-kube-state-metrics-telemetry'
+      static_configs:
+        - targets: ['192.168.60.22:30961']
+          labels:
+            cluster: k3s
+    - job_name: 'k3s-cert-manager'
+      static_configs:
+        - targets: ['192.168.60.22:30962']
+          labels:
+            cluster: k3s
+    - job_name: 'k3s-longhorn'
+      static_configs:
+        - targets: ['192.168.60.22:30963']
+          labels:
+            cluster: k3s
