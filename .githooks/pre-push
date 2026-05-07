@@ -1,0 +1,54 @@
+#!/bin/bash
+# Pre-push hook for homelab-configs.
+# Blocks pushes that introduce internal hostnames or private IPs into the
+# repo, since this repo mirrors publicly to github.com/CodisTech/homelab-configs.
+#
+# Activate (once per clone):  git config core.hooksPath .githooks
+# Bypass (use only when sure): git push --no-verify
+
+set -e
+
+ZERO=0000000000000000000000000000000000000000
+
+while read local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$ZERO" ] && continue   # branch deletion
+    if [ "$remote_sha" = "$ZERO" ]; then
+        range="$local_sha"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+
+    # Patterns that must NEVER reach the public mirror.
+    # cyberreadylabs.com is allowed (real business domain, in README intentionally).
+    violations=$(git log --format= -p "$range" -- ':!.githooks/' \
+        | grep -E '^\+' \
+        | grep -E '(codistech\.live|192\.168\.[0-9]+\.[0-9]+)' \
+        || true)
+
+    if [ -n "$violations" ]; then
+        echo ""
+        echo "============================================================"
+        echo "  PRE-PUSH BLOCKED"
+        echo "============================================================"
+        echo ""
+        echo "homelab-configs mirrors PUBLICLY to github.com/CodisTech/homelab-configs."
+        echo "These additions would leak internal values:"
+        echo ""
+        echo "$violations" | head -10
+        echo ""
+        echo "Fix:"
+        echo "  - Replace 'local.example.home' with 'local.example.home'"
+        echo "  - Replace '@example.home' with '@example.home'"
+        echo "  - Replace '192.168.X.Y' with '10.0.X.Y'"
+        echo "  - Real values stay only on VM 100 (live working dirs)."
+        echo ""
+        echo "If you are CERTAIN this is a false positive, push with:"
+        echo "  git push --no-verify"
+        echo ""
+        echo "See memory: project_homelab_configs_sanitization.md"
+        echo "============================================================"
+        exit 1
+    fi
+done
+
+exit 0

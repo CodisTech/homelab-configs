@@ -1,0 +1,19 @@
+services:
+  # Capture service
+  capture:
+    image: ghcr.io/bluewave-labs/capture:latest
+    container_name: capture
+    restart: unless-stopped
+    ports:
+      - "59232:59232"
+    environment:
+      - API_SECRET=${API_SECRET} # Required authentication key. Do not forget to replace this with your actual secret key.
+      - GIN_MODE=release
+    volumes:
+      - /etc/os-release:/etc/os-release:ro
+    networks:
+      - checkmate_checkmate
+
+networks:
+  checkmate_checkmate:
+    external: true

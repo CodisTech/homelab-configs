@@ -1,0 +1,261 @@
+---
+services:
+  prometheus:
+    image: docker.io/prom/prometheus:v3.9.1
+    restart: unless-stopped
+    ports:
+      # Loopback only — public access is via Traefik (proxy-internal network)
+      # with TLS + Authentik OAuth. Direct LAN exposure would be unauthenticated
+      # and writable (--web.enable-remote-write-receiver).
+      - "127.0.0.1:9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-remote-write-receiver
+    volumes:
+      - prometheus_data:/prometheus
+      - ./config_prometheus/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./config_prometheus/rules:/etc/prometheus/rules:ro
+    networks:
+      monitoring:
+        aliases:
+          - prometheus
+      proxy-internal:
+        aliases:
+          - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.local.example.home`)"
+      - "traefik.http.routers.prometheus.entrypoints=https"
+      - "traefik.http.routers.prometheus.tls.certresolver=cloudflare"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.docker.network=proxy-internal"
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    restart: unless-stopped
+    ports:
+      # Loopback only — Alertmanager API has no auth; LAN exposure would let
+      # anyone POST fake alerts or create silences. SIEM agents reach AM via
+      # the shared monitoring-bridge docker network (DNS: alertmanager:9093).
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./config_alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    networks:
+      monitoring:
+        aliases:
+          - alertmanager
+      monitoring-bridge:
+        aliases:
+          - alertmanager
+
+  grafana:
+    image: docker.io/grafana/grafana-oss:12.3.1
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+       - GF_SERVER_HTTP_PORT=3000
+       - GF_SERVER_ROOT_URL=https://grafana.local.example.home
+      # Authentik SSO
+       - GF_AUTH_GENERIC_OAUTH_ENABLED=true
+       - GF_AUTH_GENERIC_OAUTH_NAME=Authentik
+       - GF_AUTH_GENERIC_OAUTH_CLIENT_ID=5xueMF7bBsLLP3JIwx6REEa8BgjDNOPTQ5cQIRiN
+       - GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET=${GRAFANA_OAUTH_CLIENT_SECRET}
+       - GF_AUTH_GENERIC_OAUTH_SCOPES=openid profile email
+       - GF_AUTH_GENERIC_OAUTH_AUTH_URL=https://auth.local.example.home/application/o/authorize/
+       - GF_AUTH_GENERIC_OAUTH_TOKEN_URL=https://auth.local.example.home/application/o/token/
+       - GF_AUTH_GENERIC_OAUTH_API_URL=https://auth.local.example.home/application/o/userinfo/
+       - GF_AUTH_SIGNOUT_REDIRECT_URL=https://auth.local.example.home/application/o/grafana/end-session/
+       - GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP=true
+       - GF_AUTH_OAUTH_AUTO_LOGIN=true
+       - GF_AUTH_DISABLE_LOGIN_FORM=true
+       - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Admin        
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      monitoring:
+        aliases:
+          - grafana
+      proxy-internal:
+        aliases:
+          - grafana
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.local.example.home`)"
+      - "traefik.http.routers.grafana.entrypoints=https"
+      - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=proxy-internal"
+
+  loki:
+    image: docker.io/grafana/loki:2.9.0
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+      - ./config_loki/loki.yaml:/etc/loki/local-config.yaml:ro
+      - ./certs:/etc/loki/certs:ro  
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      monitoring:
+        aliases:
+          - loki
+      proxy-internal:
+        aliases:
+          - loki
+
+  pihole-exporter:
+    image: ekofr/pihole-exporter:latest
+    restart: unless-stopped
+    ports:
+      - "9617:9617"
+    environment:
+      - PIHOLE_HOSTNAME=pihole1.local.example.home
+      - PIHOLE_PORT=8080
+      - PIHOLE_PASSWORD=${PIHOLE_PASSWORD}
+    networks:
+      monitoring:
+        aliases:
+          - pihole-exporter
+
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:latest
+    restart: unless-stopped
+    ports:
+      - "9221:9221"
+    volumes:
+      - ./config_pve_exporter/pve.yml:/etc/prometheus/pve.yml:ro
+    networks:
+      monitoring:
+        aliases:
+          - pve-exporter
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    ports:
+      - "9100:9100"
+    networks:
+      monitoring:
+        aliases:
+          - node-exporter
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+    networks:
+      monitoring:
+        aliases:
+          - cadvisor
+
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox
+    restart: unless-stopped
+    volumes:
+      - ./config_blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    command:
+      - '--config.file=/etc/blackbox/blackbox.yml'
+    ports:
+      - "9115:9115"
+    networks:
+      monitoring:
+        aliases:
+          - blackbox
+
+  # Host-level Promtail. Ships Wazuh alerts.json (SIEM detections) and
+  # VM 100 Docker container logs to Loki. Runs as root (0:0) because
+  # Wazuh's alerts.json and the host docker socket are not world-readable.
+  # Auth: HTTPS to Loki with CA verification (insecure_skip_verify: false);
+  # no client cert (Loki has client_auth_type: VerifyClientCertIfGiven).
+  host-promtail:
+    image: grafana/promtail:2.9.0
+    container_name: host-promtail
+    restart: unless-stopped
+    user: "0:0"
+    command:
+      - -config.file=/etc/promtail/config.yaml
+    ports:
+      - "1601:1601/tcp"   # OPNsense syslog receiver — added 2026-05-02
+    volumes:
+      - ./config_promtail/promtail.yaml:/etc/promtail/config.yaml:ro
+      - ./certs/ca.crt:/etc/promtail/certs/ca.crt:ro
+      - host_promtail_positions:/var/lib/promtail
+      # Wazuh manager alerts (read-only). Volume name from the wazuh stack.
+      - /var/lib/docker/volumes/single-node_wazuh_logs/_data:/var/log/wazuh:ro
+      # Local docker container logs + socket for SD-based discovery
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      monitoring:
+        aliases:
+          - host-promtail
+
+  speedtest-exporter:
+      image: miguelndecarvalho/speedtest-exporter:latest 
+      container_name: speedtest-exporter  
+      restart: unless-stopped
+      ports:
+        - "9798:9798"
+      # Override image healthcheck — image uses localhost which resolves to ::1
+      # first (IPv6), but exporter only binds IPv4. Use 127.0.0.1 explicitly.
+      healthcheck:
+        test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:9798/ || exit 1"]
+        interval: 30s
+        timeout: 5s
+        retries: 3
+        start_period: 30s
+      networks:
+        monitoring:
+          aliases:
+            - speedtest-exporter
+volumes:
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  loki_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  host_promtail_positions:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge
+  proxy-internal:
+    external: true
+  # Shared bridge for SIEM-side stacks (Wazuh) to reach Alertmanager
+  # without exposing the AM port on the LAN. Created out-of-band:
+  #   docker network create monitoring-bridge
+  monitoring-bridge:
+    external: true

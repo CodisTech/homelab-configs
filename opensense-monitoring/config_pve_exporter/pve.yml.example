@@ -1,0 +1,36 @@
+---
+# pve-exporter multi-module config — ONE module per Proxmox host
+# Each module holds the credentials for that host (Proxmox tokens are
+# per-host since A/C/D are not clustered).
+#
+# Prometheus selects a module via ?module=<name> query param.
+# The module names below match the `pve_node` label in prometheus.yaml,
+# wired through a relabel rule (source pve_node -> __param_module).
+#
+# Token creation: Datacenter -> Permissions -> API Tokens -> Add
+#   User=root@pam, TokenID=prometheus, Privilege Separation=UNCHECKED
+# The token value is shown ONCE in the modal — copy it before closing.
+
+default:
+  user: root@pam
+  token_name: prometheus
+  token_value: REPLACE_WITH_SERVER_C_TOKEN
+  verify_ssl: false
+
+server-a:
+  user: root@pam
+  token_name: prometheus
+  token_value: REPLACE_WITH_SERVER_A_TOKEN
+  verify_ssl: false
+
+server-c:
+  user: root@pam
+  token_name: prometheus
+  token_value: REPLACE_WITH_SERVER_C_TOKEN
+  verify_ssl: false
+
+server-d:
+  user: root@pam
+  token_name: prometheus
+  token_value: REPLACE_WITH_SERVER_D_TOKEN
+  verify_ssl: false

@@ -1,0 +1,86 @@
+<!-- CyberReadyLabs Policy-as-Code Rules -->
+<!-- Place in /var/ossec/etc/rules/local_rules.xml on Wazuh Manager -->
+
+<group name="policy-as-code,compliance,">
+
+  <!-- InSpec Critical Control Failure (impact 1.0) -->
+  <rule id="100200" level="10">
+    <decoded_as>inspec-failure</decoded_as>
+    <field name="impact">1.0</field>
+    <description>CRITICAL: InSpec control failed - $(control_id): $(title)</description>
+    <group>policy-as-code,compliance,critical,</group>
+  </rule>
+
+  <!-- InSpec High-Impact Control Failure (impact >= 0.7) -->
+  <rule id="100201" level="7">
+    <decoded_as>inspec-failure</decoded_as>
+    <field name="impact">0.7|0.8|0.9</field>
+    <description>HIGH: InSpec control failed - $(control_id): $(title)</description>
+    <group>policy-as-code,compliance,high,</group>
+  </rule>
+
+  <!-- InSpec Medium-Impact Control Failure (catch-all for other impacts) -->
+  <rule id="100202" level="5">
+    <decoded_as>inspec-failure</decoded_as>
+    <description>MEDIUM: InSpec control failed - $(control_id): $(title)</description>
+    <group>policy-as-code,compliance,medium,</group>
+  </rule>
+
+  <!-- OPA Policy Violation -->
+  <rule id="100210" level="8">
+    <decoded_as>opa-violation</decoded_as>
+    <description>OPA Policy Violation: $(violation_message)</description>
+    <group>policy-as-code,opa,violation,</group>
+  </rule>
+
+  <!-- Compliance Scan Completed - Good Score (>= 90%) -->
+  <rule id="100220" level="3">
+    <decoded_as>compliance-scan</decoded_as>
+    <field name="compliance_score">^9\d|100</field>
+    <description>Compliance scan completed: $(compliance_score)% ($(passed_controls)/$(total_controls) passed)</description>
+    <group>policy-as-code,compliance,info,</group>
+  </rule>
+
+  <!-- Compliance Scan Completed - Warning Score (70-89%) -->
+  <rule id="100221" level="6">
+    <decoded_as>compliance-scan</decoded_as>
+    <field name="compliance_score">^[78]\d</field>
+    <description>Compliance score WARNING: $(compliance_score)% ($(passed_controls)/$(total_controls) passed)</description>
+    <group>policy-as-code,compliance,warning,</group>
+  </rule>
+
+  <!-- Compliance Scan Completed - Critical Score (< 70%) -->
+  <rule id="100222" level="10">
+    <decoded_as>compliance-scan</decoded_as>
+    <field name="compliance_score">^[0-6]\d</field>
+    <description>Compliance score CRITICAL: $(compliance_score)% ($(passed_controls)/$(total_controls) passed)</description>
+    <group>policy-as-code,compliance,critical,</group>
+  </rule>
+
+</group>
+
+<!-- SCA tuning — added 2026-04-30 -->
+<!-- Rationale: CIS UsePAM check (id 35661) flips passed/failed every ~7min across 5 Ubuntu 24.04 agents -->
+<!-- (k3s-control, k3s-worker-1/2/3, suricata). Verified UsePAM=yes on disk + sshd -T returns yes -->
+<!-- consistently. Root cause: wazuh agent user lacks privileges to fully resolve sshd defaults during -->
+<!-- SCA scan. This is a Wazuh agent artifact, not a real config drift. Downgrading 19011 (level 9) -->
+<!-- to level 3 ONLY for check.id 35661 preserves audit trail without paging Telegram. -->
+<group name="sca,sca_tuned,">
+  <rule id="100300" level="3">
+    <if_sid>19011</if_sid>
+    <field name="data.sca.check.id">^35661$</field>
+    <description>SCA tuned: UsePAM transient flip (false positive, verified on disk; Wazuh agent privilege artifact)</description>
+    <group>sca,sca_tuned,false_positive,</group>
+  </rule>
+</group>
+
+<!-- dpkg half-configured noise — added 2026-05-02 -->
+<!-- Rule 2904 fires on every package intermediate state during normal apt upgrades. -->
+<!-- 70 hits 04-30, 18 hits 04-29 — 90% of Francis digest noise. Real dpkg trouble -->
+<!-- is detectable via dpkg --audit post-run, not from intermediate states. -->
+<group name="syslog,dpkg,">
+  <rule id="100020" level="0">
+    <if_sid>2904</if_sid>
+    <description>dpkg half-configured: intermediate state during normal apt upgrade — silenced</description>
+  </rule>
+</group>

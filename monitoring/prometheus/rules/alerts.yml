@@ -1,0 +1,81 @@
+groups:
+  - name: node_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+
+      - alert: HostDown
+        expr: up{job=~"node-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host {{ $labels.instance }} is down"
+
+  - name: pihole_alerts
+    rules:
+      - alert: PiholeDown
+        expr: up{job="pihole"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pi-hole exporter is down"
+
+  - name: proxmox_alerts
+    rules:
+      - alert: ProxmoxVMDown
+        expr: pve_up{id=~"qemu/.*"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VM {{ $labels.id }} is down"
+
+      - alert: ProxmoxNodeDown
+        expr: pve_up{id=~"node/.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox node {{ $labels.id }} is down"
+
+  - name: service_alerts
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} is down"
+
+      - alert: CrowdsecHighBanCount
+        expr: sum(cs_active_decisions) > 20000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CrowdSec has many active bans"
