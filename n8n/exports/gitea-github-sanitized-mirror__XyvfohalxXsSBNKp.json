@@ -1,0 +1,164 @@
+{
+  "active": true,
+  "connections": {
+    "Filter Main Branch": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Run Sanitize & Push",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Gitea Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Filter Main Branch",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Run Sanitize & Push": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Set Result",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "XyvfohalxXsSBNKp",
+  "isArchived": false,
+  "meta": null,
+  "name": "Gitea \u2192 GitHub Sanitized Mirror",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Gitea Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {
+          "rawBody": true
+        },
+        "path": "gitea-mirror"
+      },
+      "position": [
+        250,
+        300
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "64658247-26a9-4f56-81f1-765799ea5c82"
+    },
+    {
+      "id": "filter-main-branch",
+      "name": "Filter Main Branch",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-branch-check",
+              "leftValue": "={{ $json.body.ref }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "refs/heads/main"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        470,
+        300
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2
+    },
+    {
+      "id": "set-result",
+      "name": "Set Result",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "result-status",
+              "name": "status",
+              "type": "string",
+              "value": "={{ $json.exitCode === 0 ? 'success' : 'failed' }}"
+            },
+            {
+              "id": "result-output",
+              "name": "output",
+              "type": "string",
+              "value": "={{ $json.stdout }}"
+            },
+            {
+              "id": "result-error",
+              "name": "error",
+              "type": "string",
+              "value": "={{ $json.stderr }}"
+            },
+            {
+              "id": "result-repo",
+              "name": "repo",
+              "type": "string",
+              "value": "={{ $('Gitea Webhook').item.json.body.repository.full_name }}"
+            },
+            {
+              "id": "result-pusher",
+              "name": "pusher",
+              "type": "string",
+              "value": "={{ $('Gitea Webhook').item.json.body.pusher.login }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        910,
+        300
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "run-sanitize-script",
+      "name": "Run Sanitize & Push",
+      "parameters": {
+        "jsCode": "const { execSync } = require('child_process');\ntry {\n  const stdout = execSync('/home/node/.n8n/sanitize-mirror.sh', {\n    timeout: 120000,\n    encoding: 'utf-8',\n    env: {\n      HOME: '/home/node',\n      PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',\n      GITHUB_TOKEN: $env.GITHUB_TOKEN,\n      GITEA_TOKEN: $env.GITEA_TOKEN\n    }\n  });\n  return [{ json: { exitCode: 0, stdout, stderr: '' } }];\n} catch (err) {\n  return [{ json: { exitCode: err.status || 1, stdout: err.stdout || '', stderr: err.stderr || err.message } }];\n}",
+        "language": "javaScript"
+      },
+      "position": [
+        690,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

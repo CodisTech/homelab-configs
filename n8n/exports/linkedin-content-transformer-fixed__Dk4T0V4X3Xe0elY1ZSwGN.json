@@ -1,0 +1,295 @@
+{
+  "active": false,
+  "connections": {
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Call Claude API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save to Pending Review",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Filter MD and DOCX": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Files from Classes": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Filter MD and DOCX",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save to Pending Review": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "Dk4T0V4X3Xe0elY1ZSwGN",
+  "isArchived": true,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "LinkedIn Content Transformer - Fixed",
+  "nodes": [
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a63fad9d-d0e2-40f7-a6f2-4f611752a9b7",
+      "name": "List Files from Classes",
+      "parameters": {
+        "path": "/GeorgeWashington/Classes"
+      },
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "5f97e745-2a0d-492b-a959-18cc2d3baa6a",
+      "name": "Filter MD and DOCX",
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "operation": "regex",
+              "value1": "={{$json.basename}}",
+              "value2": "\\.(md|docx)$"
+            }
+          ]
+        }
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "27b7a199-6f33-4db5-afc5-33320cb4f95b",
+      "name": "Download File",
+      "parameters": {
+        "operation": "download",
+        "path": "={{$json.path}}"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "ff9a5505-67e6-4471-8664-1df4c9ba65bd",
+      "name": "Extract Content",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "8e1dea5f-ca93-4c0f-b592-d91799b8201e",
+      "name": "Call Claude API",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "claude-sonnet-4-20250514"
+            },
+            {
+              "name": "max_tokens",
+              "value": "2000"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"Transform this academic content into an engaging LinkedIn post for a cybersecurity professional audience.\\n\\nOriginal content:\\n\" + $json.fileContent + \"\\n\\nRequirements:\\n1. Create a compelling hook/opening line\\n2. Extract the key cybersecurity insight or argument\\n3. Make it conversational but maintain technical credibility\\n4. Include 3-5 relevant hashtags at the end\\n5. Add a thought-provoking question to encourage engagement\\n6. Keep it 1300-1500 characters (LinkedIn optimal length)\\n7. Remove academic citations or simplify them\\n8. Use short paragraphs (2-3 sentences each)\\n\\nMaintain John's professional voice: direct, experienced, Navy veteran perspective, practical focus on real-world security.\\n\\nReturn ONLY the transformed LinkedIn post, no preamble or explanation.\"}]"
+            }
+          ]
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        1104,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "877e643d-ecc0-43be-9e18-6bf8470f4f5f",
+      "name": "Extract Response",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        1328,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "188ed0c0-0301-4adf-a8ce-652026ff1d95",
+      "name": "Save to Pending Review",
+      "parameters": {
+        "fileContent": "={{$json.transformedPost}}",
+        "path": "==/Personal/LinkedIn/Pending_Review/{{ $json.originalFileName.replace('.docx', '.md') }}"
+      },
+      "position": [
+        1552,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "a11a14c4-622d-4fe7-8bc0-1be858ea953b",
+      "name": "Send Telegram",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\ud83d\udd14 New LinkedIn Post Ready!\n\n\ud83d\udcc1 File: {{$json.originalFileName}}\n\ud83d\udccd Location: /Personal/LinkedIn/Pending_Review/\n\n\u270d\ufe0f Preview:\n{{$json.transformedPost.substring(0, 250)}}...\n\n\ud83d\udc49 Review in Nextcloud!"
+      },
+      "position": [
+        3728,
+        384
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "345fb55d-59a1-41fe-b4ff-66252e603923"
+    },
+    {
+      "id": "fed1bf99-4567-464a-85ec-2bf8fbc1e501",
+      "name": "Schedule Trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 20 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        48,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

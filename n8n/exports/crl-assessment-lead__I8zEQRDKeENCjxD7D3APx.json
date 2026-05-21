@@ -1,0 +1,190 @@
+{
+  "active": true,
+  "connections": {
+    "Transform Payload": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notion \u2014 Create Lead",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Telegram \u2014 Alert",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Email \u2014 Scorecard Summary",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Respond 200",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Transform Payload",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "I8zEQRDKeENCjxD7D3APx",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL \u2014 Assessment Lead",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "crl-assessment-lead",
+        "responseMode": "responseNode"
+      },
+      "position": [
+        240,
+        300
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "f2ba82a9-163f-41c7-967c-19a941b3340e"
+    },
+    {
+      "id": "respond-immediately",
+      "name": "Respond 200",
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ received: true }) }}"
+      },
+      "position": [
+        460,
+        180
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1
+    },
+    {
+      "id": "transform-payload",
+      "name": "Transform Payload",
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nconst lead = body.lead || {};\nconst gaps = body.gaps || [];\nconst mitre = body.mitreExposure || [];\nconst frameworks = body.frameworkScores || {};\nconst qualifiers = body.qualifiers || {};\n\nconst riskColors = {\n  'Low Risk':      { color: '#22c55e', bg: '#052e16', border: '#22c55e33' },\n  'Moderate Risk': { color: '#f59e0b', bg: '#1c1400', border: '#f59e0b33' },\n  'High Risk':     { color: '#f97316', bg: '#1a0a00', border: '#f9731633' },\n  'Critical Risk': { color: '#ef4444', bg: '#1a0000', border: '#ef444433' },\n};\nconst risk = riskColors[body.riskLevel] || riskColors['High Risk'];\n\nconst gapLabels = {\n  q1:  'No documented cybersecurity policy approved by leadership',\n  q2:  'No up-to-date asset inventory',\n  q3:  'MFA not enforced for remote access and privileged accounts',\n  q4:  'No formal patch management process with defined SLAs',\n  q5:  'No real-time security monitoring or alerting',\n  q6:  'Incident response plan missing or never tested',\n  q7:  'Backups not tested \u2014 recovery not verified',\n  q8:  'Least privilege not enforced \u2014 over-privileged accounts exist',\n  q9:  'Sensitive data not encrypted at rest and in transit',\n  q10: 'No cloud security baseline or misconfiguration detection',\n  q11: 'No security awareness training for all employees',\n  q12: 'No regular vulnerability scanning or tracked remediation',\n  q13: 'No secure hardware and media disposal process',\n  q14: 'No formal vendor risk assessment program',\n  q15: 'Email security controls (SPF/DKIM/DMARC) not fully configured',\n  q16: 'Unable to detect/respond to phishing, ransomware, credential theft, or exfiltration',\n  q17: 'No AI governance policy or accountability structure',\n  q18: 'No AI system impact assessments (AISIA) conducted',\n  q19: 'No monitoring of AI systems for drift, bias, or degradation',\n  q20: 'AI systems not classified under EU AI Act risk categories',\n  q21: 'No human oversight mechanisms for high-risk AI systems',\n  q22: 'EU AI Act technical documentation not maintained',\n  q23: 'No System Security Plan (SSP) aligned to NIST 800-53 Rev 5',\n  q24: 'No FedRAMP continuous monitoring (ConMon) program',\n  q25: 'No Plan of Action & Milestones (POA&M) process',\n};\n\nconst topGaps = gaps.slice(0, 3).map(id => gapLabels[id] || id);\n\nconst mitreTactics = {\n  'T1078': 'Initial Access', 'T1592': 'Reconnaissance', 'T1110': 'Credential Access',\n  'T1190': 'Initial Access', 'T1203': 'Execution', 'T1562': 'Defense Evasion',\n  'T1486': 'Impact', 'T1078.003': 'Persistence', 'T1560': 'Collection',\n  'T1537': 'Exfiltration', 'T1566': 'Initial Access', 'T1566.001': 'Initial Access',\n  'T1005': 'Collection', 'T1195': 'Initial Access', 'T1195.001': 'Initial Access',\n  'T1041': 'Exfiltration', 'T1565': 'Impact', 'T1133': 'Initial Access',\n};\nconst uniqueTactics = [...new Set(mitre.map(t => mitreTactics[t]).filter(Boolean))];\n\nconst frameworkSummary = Object.entries(frameworks)\n  .map(([fw, score]) => `${fw}: ${score}%`)\n  .join(' | ');\n\nconst qualifierFlags = [];\nif (qualifiers.usesAI) qualifierFlags.push('AI/ML');\nif (qualifiers.operatesEU) qualifierFlags.push('EU Operations');\nif (qualifiers.targetsFederal) qualifierFlags.push('Federal Market');\n\nreturn [{\n  json: {\n    name: lead.name || '',\n    email: lead.email || '',\n    company: lead.company || '',\n    size: lead.size || '',\n    industry: body.industry?.label || '',\n    overallScore: body.overallScore || 0,\n    riskLevel: body.riskLevel || '',\n    frameworkSummary,\n    gap1: topGaps[0] || 'N/A',\n    gap2: topGaps[1] || 'N/A',\n    gap3: topGaps[2] || 'N/A',\n    allGaps: gaps.join(', '),\n    mitreCount: mitre.length,\n    mitreTacticCount: uniqueTactics.length,\n    mitreTechniques: mitre.join(', '),\n    qualifierFlags: qualifierFlags.join(', '),\n    riskColor: risk.color,\n    riskBg: risk.bg,\n    riskBorder: risk.border,\n  }\n}];\n"
+      },
+      "position": [
+        460,
+        380
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "notion-create",
+      "name": "Notion \u2014 Create Lead",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.company + ' \\u2014 Assessment Lead' } }] }, 'Contact Email': { email: $json.email }, 'Primary Contact': { rich_text: [{ text: { content: $json.name } }] }, 'Status': { select: { name: 'Assessment Lead' } }, 'Score': { number: $json.overallScore }, 'Risk Level': { select: { name: $json.riskLevel } }, 'Industry': { select: { name: $json.industry } }, 'Org Size': { rich_text: [{ text: { content: $json.size } }] }, 'Framework Scores': { rich_text: [{ text: { content: $json.frameworkSummary } }] }, 'Top Gaps': { rich_text: [{ text: { content: '1. ' + $json.gap1 + '\\n2. ' + $json.gap2 + '\\n3. ' + $json.gap3 } }] }, 'MITRE Techniques': { rich_text: [{ text: { content: $json.mitreTechniques } }] }, 'Qualifiers': { rich_text: [{ text: { content: $json.qualifierFlags } }] }, 'Source': { select: { name: 'Assessment Tool' } } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        700,
+        280
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "telegram-alert",
+      "name": "Telegram \u2014 Alert",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83d\udee1\ufe0f <b>New Assessment Lead</b>\n\n\ud83d\udc64 <b>{{ $json.name }}</b>\n\ud83c\udfe2 {{ $json.company }} ({{ $json.size }} employees)\n\ud83d\udce7 {{ $json.email }}\n\ud83c\udfed {{ $json.industry }}\n\n\ud83d\udcca Score: <b>{{ $json.overallScore }}%</b> \u2014 {{ $json.riskLevel }}\n\u2694\ufe0f MITRE Exposure: {{ $json.mitreCount }} techniques\n\n\ud83d\udd34 Top Gap: {{ $json.gap1 }}\n\n\ud83d\udd16 Qualifiers: {{ $json.qualifierFlags || 'None' }}"
+      },
+      "position": [
+        700,
+        420
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "send-email",
+      "name": "Email \u2014 Scorecard Summary",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "emailFormat": "html",
+        "fromEmail": "info@cyberreadylabs.com",
+        "html": "=<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /></head><body style=\"margin:0;padding:0;background:#0a0e1a;font-family:'Segoe UI',Arial,sans-serif;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0a0e1a;padding:40px 20px;\"><tr><td align=\"center\"><table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;width:100%;\"><tr><td style=\"padding-bottom:32px;text-align:center;\"><p style=\"margin:0;color:#00c8b4;font-size:11px;letter-spacing:4px;font-weight:700;text-transform:uppercase;\">\ud83d\udee1\ufe0f &nbsp;CYBERREADYLABS</p></td></tr><tr><td style=\"background:#141f35;border:1px solid #1e2f4a;border-radius:16px;padding:40px 36px;\"><p style=\"margin:0 0 8px;color:#94a3b8;font-size:13px;\">Hi {{ $json.name }},</p><h1 style=\"margin:0 0 24px;color:#e2e8f0;font-size:24px;font-weight:800;line-height:1.3;\">Your security assessment results are in.</h1><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0f1829;border:1px solid {{ $json.riskBorder }};border-radius:12px;margin-bottom:28px;\"><tr><td style=\"padding:28px;text-align:center;\"><p style=\"margin:0 0 4px;color:#64748b;font-size:12px;letter-spacing:2px;text-transform:uppercase;\">Overall Security Score</p><p style=\"margin:0 0 12px;color:{{ $json.riskColor }};font-size:52px;font-weight:800;line-height:1;\">{{ $json.overallScore }}%</p><span style=\"display:inline-block;padding:6px 18px;background:{{ $json.riskBg }};border:1px solid {{ $json.riskColor }};border-radius:99px;color:{{ $json.riskColor }};font-size:13px;font-weight:700;\">{{ $json.riskLevel }}</span></td></tr></table><p style=\"margin:0 0 14px;color:#e2e8f0;font-size:15px;font-weight:700;\">Your top priority gaps:</p><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0f1829;border:1px solid #ef444433;border-radius:10px;margin-bottom:10px;\"><tr><td style=\"padding:14px 16px;\"><table cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"padding-right:12px;vertical-align:top;\"><span style=\"display:inline-block;width:22px;height:22px;background:#ef444422;border-radius:50%;text-align:center;line-height:22px;color:#ef4444;font-size:12px;font-weight:700;\">1</span></td><td><p style=\"margin:0;color:#e2e8f0;font-size:14px;font-weight:600;line-height:1.4;\">{{ $json.gap1 }}</p></td></tr></table></td></tr></table><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0f1829;border:1px solid #ef444433;border-radius:10px;margin-bottom:10px;\"><tr><td style=\"padding:14px 16px;\"><table cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"padding-right:12px;vertical-align:top;\"><span style=\"display:inline-block;width:22px;height:22px;background:#ef444422;border-radius:50%;text-align:center;line-height:22px;color:#ef4444;font-size:12px;font-weight:700;\">2</span></td><td><p style=\"margin:0;color:#e2e8f0;font-size:14px;font-weight:600;line-height:1.4;\">{{ $json.gap2 }}</p></td></tr></table></td></tr></table><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#0f1829;border:1px solid #ef444433;border-radius:10px;margin-bottom:28px;\"><tr><td style=\"padding:14px 16px;\"><table cellpadding=\"0\" cellspacing=\"0\"><tr><td style=\"padding-right:12px;vertical-align:top;\"><span style=\"display:inline-block;width:22px;height:22px;background:#ef444422;border-radius:50%;text-align:center;line-height:22px;color:#ef4444;font-size:12px;font-weight:700;\">3</span></td><td><p style=\"margin:0;color:#e2e8f0;font-size:14px;font-weight:600;line-height:1.4;\">{{ $json.gap3 }}</p></td></tr></table></td></tr></table><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#1a0f2a;border:1px solid #ec489933;border-radius:10px;margin-bottom:28px;\"><tr><td style=\"padding:16px 20px;\"><p style=\"margin:0 0 4px;color:#ec4899;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;\">\u2694\ufe0f &nbsp;MITRE ATT&CK Exposure</p><p style=\"margin:0;color:#e2e8f0;font-size:14px;line-height:1.5;\">Based on your answers, your organization has potential exposure to <strong style=\"color:#ec4899;\">{{ $json.mitreCount }} ATT&CK techniques</strong> across {{ $json.mitreTacticCount }} tactic categories. Your full technique list is available in your discovery call.</p></td></tr></table><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:28px;\"><tr><td style=\"border-top:1px solid #1e2f4a;\"></td></tr></table><p style=\"margin:0 0 8px;color:#e2e8f0;font-size:15px;font-weight:700;\">Ready to close these gaps?</p><p style=\"margin:0 0 24px;color:#94a3b8;font-size:14px;line-height:1.6;\">The <strong style=\"color:#e2e8f0;\">CyberReady Snapshot</strong> gives you a complete security program assessment with a prioritized remediation roadmap \u2014 delivered in 5 business days for $1,200. Your full scorecard and MITRE exposure report are included.</p><table cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 auto;\"><tr><td style=\"background:#00c8b4;border-radius:8px;\"><a href=\"https://book.cyberreadylabs.com\" style=\"display:inline-block;padding:14px 32px;color:#0a0e1a;font-size:15px;font-weight:700;text-decoration:none;\">Book Your Free Discovery Call \u2192</a></td></tr></table></td></tr><tr><td style=\"padding-top:32px;text-align:center;\"><p style=\"margin:0 0 8px;color:#64748b;font-size:12px;\">CyberReadyLabs &nbsp;\u00b7&nbsp; cyberreadylabs.com</p><p style=\"margin:0;color:#1e2f4a;font-size:11px;\">You received this because you completed a security assessment at assess.cyberreadylabs.com.</p></td></tr></table></td></tr></table></body></html>",
+        "options": {},
+        "subject": "Your CyberReadyLabs Security Assessment Results",
+        "toEmail": "={{ $json.email }}"
+      },
+      "position": [
+        700,
+        560
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

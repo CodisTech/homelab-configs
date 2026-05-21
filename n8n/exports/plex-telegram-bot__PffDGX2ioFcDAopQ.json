@@ -1,0 +1,242 @@
+{
+  "active": false,
+  "connections": {
+    "Call Plex Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Format Plex Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Command": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Command Text?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Format Plex Reply": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Plex Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Command Text?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Call Plex Webhook",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Plex Help",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Command",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "PffDGX2ioFcDAopQ",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Plex Telegram Bot",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "tg-trigger",
+      "name": "Telegram Trigger",
+      "parameters": {
+        "additionalFields": {},
+        "updates": [
+          "message"
+        ]
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "b0cc3e02-690d-44d2-80e7-a2d7123fe5b2"
+    },
+    {
+      "id": "extract-cmd",
+      "name": "Extract Command",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst chatId = String(input.message?.chat?.id || '');\nlet text = (input.message?.text || '').trim();\n\n// Strip /plex prefix if present (with or without @botname)\ntext = text.replace(/^\\/plex(@\\w+)?\\s*/i, '').trim();\n// Also strip /start command (first message to bot)\ntext = text.replace(/^\\/start(@\\w+)?\\s*/i, '').trim();\n\nreturn [{ json: { chatId, commandText: text } }];"
+      },
+      "position": [
+        240,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "has-text",
+      "name": "Has Command Text?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.commandText }}",
+              "operator": {
+                "operation": "notEmpty",
+                "type": "string"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        480,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "call-webhook",
+      "name": "Call Plex Webhook",
+      "parameters": {
+        "jsonBody": "={{ JSON.stringify({ text: $json.commandText }) }}",
+        "method": "POST",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://localhost:5678/webhook/plex-voice"
+      },
+      "position": [
+        720,
+        -80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "format-reply",
+      "name": "Format Plex Reply",
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Extract Command').first().json.chatId;\n\n// Plex Voice Control webhook returns { success, speech, action, ... }\nlet reply = response.speech || '';\n\nif (!reply) {\n  reply = response.success === false\n    ? 'Sorry, something went wrong with that Plex command.'\n    : 'Command sent to Plex, but I could not parse the response.';\n}\n\nreturn [{ json: { chatId, reply } }];"
+      },
+      "position": [
+        960,
+        -80
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-reply",
+      "name": "Send Plex Reply",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": {
+          "__rl": true,
+          "mode": "expression",
+          "value": "={{ $json.chatId }}"
+        },
+        "text": "={{ $json.reply }}"
+      },
+      "position": [
+        1200,
+        -80
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "c11c35f4-e8bf-4ba2-8076-a8eca691ece0"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-help",
+      "name": "Send Plex Help",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": {
+          "__rl": true,
+          "mode": "expression",
+          "value": "={{ $('Extract Command').first().json.chatId }}"
+        },
+        "text": "Plex Voice Control\n\nJust type what you want Plex to do:\n\n  play The Matrix in the living room\n  pause the master bedroom\n  play Bluey in the boys room\n  what's playing in the living room\n\nYou can also use /plex as a prefix:\n  /plex play Inception in the master"
+      },
+      "position": [
+        720,
+        128
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "d0c98b28-94e1-467e-aab7-f76152386702"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

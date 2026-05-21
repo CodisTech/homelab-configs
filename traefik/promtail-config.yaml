@@ -1,0 +1,45 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: traefik-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: traefik
+          type: access
+          __path__: /var/log/traefik/access.log
+
+  - job_name: traefik-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: traefik
+          type: error
+          __path__: /var/log/traefik/traefik.log
+
+  - job_name: crowdsec
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: crowdsec
+          __path__: /var/log/crowdsec/crowdsec.log
+
+  - job_name: crowdsec-api
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: crowdsec
+          type: api
+          __path__: /var/log/crowdsec/crowdsec_api.log

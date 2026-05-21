@@ -1,0 +1,250 @@
+{
+  "active": true,
+  "connections": {
+    "Daily 9 AM Check": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get Snapshot Delivered (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Delivered 7+ Days Ago?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Info",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Info": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send 7-Day Follow-Up",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get Snapshot Delivered (API)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Delivered 7+ Days Ago?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Send 7-Day Follow-Up": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify John (Telegram)",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "BBJrLBIuErCfotuo3rfvs",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL: 7-Day Follow-Up After Report",
+  "nodes": [
+    {
+      "id": "3c04d8c0-c417-467d-a66f-2c63acb2c123",
+      "name": "Daily 9 AM Check",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 14 * * *",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "42e1faf7-4739-4410-93c8-079700257716",
+      "name": "Delivered 7+ Days Ago?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "7-days-ago",
+              "leftValue": "={{ Math.floor((Date.now() - new Date($json.last_edited_time).getTime()) / (1000 * 60 * 60 * 24)) }}",
+              "operator": {
+                "operation": "gte",
+                "type": "number"
+              },
+              "rightValue": 7
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2
+    },
+    {
+      "id": "7ddeb9f3-1d25-4301-b1a8-93696235a286",
+      "name": "Extract Info",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "clientName",
+              "type": "string",
+              "value": "={{ $json.properties['Company Name'].title[0].plain_text || 'Client' }}"
+            },
+            {
+              "id": "email",
+              "name": "clientEmail",
+              "type": "string",
+              "value": "={{ $json.properties['Contact Email'].email || '' }}"
+            },
+            {
+              "id": "company",
+              "name": "companyName",
+              "type": "string",
+              "value": "={{ $json.properties['Company Name'].title[0].plain_text || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "a445cca4-795a-48fc-b32f-1817550bb5e7",
+      "name": "Send 7-Day Follow-Up",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px;'><p>Hi {{ $json.clientName.split(' ')[0] }},</p><p>Just checking in \u2014 it's been about a week since I sent your CyberReady Snapshot report. A few questions that often come up:</p><ul><li>Were there any findings that surprised you?</li><li>Have you started working on any of the Quick Win items?</li><li>Do you need help prioritizing the action plan with your team or MSP?</li></ul><p>I'm happy to hop on a quick 15-minute call to walk through anything \u2014 no charge.</p><p>If you're interested in ongoing support to work through the action plan, I'd be glad to discuss our CyberReady Guard advisory retainer.</p><p>Best,<br>John Codis, CISSP, CCSP<br>CyberReadyLabs</p></div>",
+        "options": {},
+        "subject": "Quick Check-In: Questions About Your Snapshot Report?",
+        "toEmail": "={{ $json.clientEmail }}"
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "85b9c098-d0e7-416e-94cc-07b91f882b42"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "b6fb2e18-37af-4de7-99fe-422664de0703",
+      "name": "Notify John (Telegram)",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83d\udcec 7-day follow-up sent!\n\nClient: {{ $json.clientName }}\nCompany: {{ $json.companyName }}\n\nConsider calling them in 2-3 days if no response."
+      },
+      "position": [
+        1104,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "b27220da-ac71-4be3-95dd-81e62e263f6f"
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "get-delivered-api",
+      "name": "Get Snapshot Delivered (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { filter: { property: 'Status', select: { equals: 'Snapshot Complete' } }, page_size: 20 } }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/databases/90720d68ecdf4be78ff76feddd9eff58/query"
+      },
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "Client Ops",
+    "CyberReadyLabs",
+    "Follow-Up"
+  ]
+}

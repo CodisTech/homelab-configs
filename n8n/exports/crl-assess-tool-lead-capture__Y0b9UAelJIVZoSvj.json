@@ -1,0 +1,290 @@
+{
+  "active": true,
+  "connections": {
+    "Assess Intake Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Assessment Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Assessment Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Lead in Notion",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Notify Telegram",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Send Confirmation Email",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "Y0b9UAelJIVZoSvj",
+  "isArchived": false,
+  "meta": null,
+  "name": "CRL: Assess Tool \u2192 Lead Capture",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Assess Intake Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        },
+        "path": "assess-intake",
+        "responseData": "allEntries",
+        "responseMode": "onReceived"
+      },
+      "position": [
+        0,
+        200
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "assess-intake-webhook"
+    },
+    {
+      "id": "extract-data",
+      "name": "Extract Assessment Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "company",
+              "name": "company",
+              "type": "string",
+              "value": "={{ $json.body.company }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "id": "employees",
+              "name": "employees",
+              "type": "string",
+              "value": "={{ $json.body.employees }}"
+            },
+            {
+              "id": "employeeCount",
+              "name": "employeeCount",
+              "type": "number",
+              "value": "={{ parseInt($json.body.employees.split('-').pop().replace('+', '')) || 0 }}"
+            },
+            {
+              "id": "industry",
+              "name": "industry",
+              "type": "string",
+              "value": "={{ $json.body.industry ? $json.body.industry.label : 'General Business' }}"
+            },
+            {
+              "id": "totalScore",
+              "name": "totalScore",
+              "type": "number",
+              "value": "={{ $json.body.totalScore }}"
+            },
+            {
+              "id": "percentage",
+              "name": "percentage",
+              "type": "number",
+              "value": "={{ $json.body.percentage }}"
+            },
+            {
+              "id": "riskLevel",
+              "name": "riskLevel",
+              "type": "string",
+              "value": "={{ $json.body.riskLevel }}"
+            },
+            {
+              "id": "frameworks",
+              "name": "frameworks",
+              "type": "string",
+              "value": "={{ ($json.body.frameworks || []).join(', ') }}"
+            },
+            {
+              "id": "frameworksList",
+              "name": "frameworksList",
+              "type": "array",
+              "value": "={{ $json.body.frameworks || [] }}"
+            },
+            {
+              "id": "mitreExposure",
+              "name": "mitreExposure",
+              "type": "array",
+              "value": "={{ $json.body.mitreExposure || [] }}"
+            },
+            {
+              "id": "gaps",
+              "name": "gaps",
+              "type": "array",
+              "value": "={{ $json.body.gaps || [] }}"
+            },
+            {
+              "id": "answers",
+              "name": "answers",
+              "type": "object",
+              "value": "={{ $json.body.answers || {} }}"
+            },
+            {
+              "id": "gapCount",
+              "name": "gapCount",
+              "type": "number",
+              "value": "={{ ($json.body.gaps || []).length }}"
+            },
+            {
+              "id": "mitreCount",
+              "name": "mitreCount",
+              "type": "number",
+              "value": "={{ ($json.body.mitreExposure || []).length }}"
+            },
+            {
+              "id": "today",
+              "name": "today",
+              "type": "string",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "id": "gap1",
+              "name": "gap1",
+              "type": "string",
+              "value": "={{ ({1:'Password & Credential Management',2:'Multi-Factor Authentication',3:'Asset Inventory',4:'Vulnerability & Patch Management',5:'Data Backup & Recovery',6:'Network Segmentation',7:'Security Awareness Training',8:'Endpoint Protection',9:'Incident Response Planning',10:'Logging & Monitoring',11:'Email Security',12:'Data Encryption',13:'Access Control & Least Privilege',14:'Governance & Policy',15:'Third-Party Risk Management',16:'Cloud Security'})[($json.body.gaps || [])[0]] || '' }}"
+            },
+            {
+              "id": "gap2",
+              "name": "gap2",
+              "type": "string",
+              "value": "={{ ({1:'Password & Credential Management',2:'Multi-Factor Authentication',3:'Asset Inventory',4:'Vulnerability & Patch Management',5:'Data Backup & Recovery',6:'Network Segmentation',7:'Security Awareness Training',8:'Endpoint Protection',9:'Incident Response Planning',10:'Logging & Monitoring',11:'Email Security',12:'Data Encryption',13:'Access Control & Least Privilege',14:'Governance & Policy',15:'Third-Party Risk Management',16:'Cloud Security'})[($json.body.gaps || [])[1]] || '' }}"
+            },
+            {
+              "id": "gap3",
+              "name": "gap3",
+              "type": "string",
+              "value": "={{ ({1:'Password & Credential Management',2:'Multi-Factor Authentication',3:'Asset Inventory',4:'Vulnerability & Patch Management',5:'Data Backup & Recovery',6:'Network Segmentation',7:'Security Awareness Training',8:'Endpoint Protection',9:'Incident Response Planning',10:'Logging & Monitoring',11:'Email Security',12:'Data Encryption',13:'Access Control & Least Privilege',14:'Governance & Policy',15:'Third-Party Risk Management',16:'Cloud Security'})[($json.body.gaps || [])[2]] || '' }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        240,
+        200
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "create-notion",
+      "name": "Create Lead in Notion",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.company } }] }, 'Contact Email': { email: $json.email }, 'Employee Count': { number: $json.employeeCount }, 'Industry': { select: { name: $json.industry } }, 'Source': { select: { name: 'Assessment Tool' } }, 'Status': { select: { name: 'New Lead' } }, 'Start Date': { date: { start: $json.today } }, 'Notes': { rich_text: [{ text: { content: 'Score: ' + $json.percentage + '% (' + $json.riskLevel + ')' } }] } }, children: [ { object: 'block', type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: 'Security Assessment Results' } }] } }, { object: 'block', type: 'callout', callout: { rich_text: [{ type: 'text', text: { content: 'Score: ' + $json.percentage + '% | Risk Level: ' + $json.riskLevel + ' | ' + $json.gapCount + ' gaps identified' } }], icon: { emoji: '\ud83d\udee1\ufe0f' } } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Company Information' } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Company: ' + $json.company } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Email: ' + $json.email } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Employees: ' + $json.employees } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Industry: ' + $json.industry } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Assessment Answers' } }] } }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: '\u2022 ' + Object.entries($json.answers).map(function(e) { var n={1:'Password & Credential Management',2:'Multi-Factor Authentication',3:'Asset Inventory',4:'Vulnerability & Patch Management',5:'Data Backup & Recovery',6:'Network Segmentation',7:'Security Awareness Training',8:'Endpoint Protection',9:'Incident Response Planning',10:'Logging & Monitoring',11:'Email Security',12:'Data Encryption',13:'Access Control & Least Privilege',14:'Governance & Policy',15:'Third-Party Risk Management',16:'Cloud Security'}; var s={0:'Critical',1:'High Risk',2:'Medium',3:'Low Risk'}; return (n[e[0]]||'Q'+e[0]) + ': ' + (s[e[1]]||e[1]); }).join('\\n\u2022 ') } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Frameworks Assessed' } }] } }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: $json.frameworks } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'MITRE ATT&CK Exposure (' + $json.mitreCount + ' techniques)' } }] } }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: $json.mitreExposure.join(', ') || 'None identified' } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Priority Gaps (' + $json.gapCount + ' areas)' } }] } }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: $json.gaps.length > 0 ? '\u2022 ' + $json.gaps.map(function(g) { var n={1:'Password & Credential Management',2:'Multi-Factor Authentication',3:'Asset Inventory',4:'Vulnerability & Patch Management',5:'Data Backup & Recovery',6:'Network Segmentation',7:'Security Awareness Training',8:'Endpoint Protection',9:'Incident Response Planning',10:'Logging & Monitoring',11:'Email Security',12:'Data Encryption',13:'Access Control & Least Privilege',14:'Governance & Policy',15:'Third-Party Risk Management',16:'Cloud Security'}; return n[g]||'Q'+g; }).join('\\n\u2022 ') : 'None identified' } }] } }, { object: 'block', type: 'divider', divider: {} }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: 'Assessment completed: ' + $json.today } }] } } ] }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        500,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Notify Telegram",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\ud83d\udd14 NEW ASSESSMENT LEAD\n\nCompany: {{ $json.company }}\nEmail: {{ $json.email }}\nEmployees: {{ $json.employees }}\nIndustry: {{ $json.industry }}\n\nScore: {{ $json.percentage }}% \u2014 {{ $json.riskLevel }}\nCritical Gaps: {{ $json.gapCount }} areas\nMITRE Exposure: {{ $json.mitreCount }} techniques\n\n\u2192 Check Notion for full details"
+      },
+      "position": [
+        500,
+        200
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "send-email",
+      "name": "Send Confirmation Email",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff'><div style='background:#1a365d;padding:30px;text-align:center'><img src='https://cyberreadylabs.com/assets/img/logo.png' alt='CyberReadyLabs' style='height:40px;margin-bottom:8px'><h1 style='margin:0;color:#fff;font-size:22px;font-weight:700'>CyberReadyLabs</h1><p style='margin:5px 0 0 0;color:rgba(255,255,255,0.9);font-size:14px'>Security Assessment Results</p></div><div style='padding:30px 30px 15px 30px;background:#f8f9fa'><p style='color:#333;margin:0 0 15px 0'>Hi {{ $json.company }} team,</p><p style='color:#333;margin:0 0 15px 0'>Thank you for completing the CyberReadyLabs Security Assessment.</p><div style='background:#fff;border-radius:8px;padding:20px;margin:0 0 15px 0;border-left:4px solid {{ $json.riskLevel === \"Critical\" ? \"#dc2626\" : $json.riskLevel === \"Developing\" ? \"#f59e0b\" : $json.riskLevel === \"Initial\" ? \"#3b82f6\" : \"#10b981\" }}'><h2 style='margin:0 0 10px 0;color:#1a365d'>Your Score: {{ $json.percentage }}%</h2><p style='margin:0;font-size:18px;color:#666'>Risk Level: <strong>{{ $json.riskLevel }}</strong></p></div><h3 style='color:#1a365d;margin:0 0 10px 0'>Key Findings</h3><p style='color:#333;margin:0 0 10px 0'>Based on your responses, we identified <strong>{{ $json.gapCount }} critical {{ $json.gapCount === 1 ? 'gap' : 'gaps' }}</strong> in your security posture and <strong>{{ $json.mitreCount }} potential attack {{ $json.mitreCount === 1 ? 'technique' : 'techniques' }}</strong> your organization may be vulnerable to.</p><p style='color:#333;margin:0 0 5px 0'><strong>Your highest-priority gaps:</strong></p><ul style='color:#333;margin:5px 0 10px 0;padding-left:20px'>{{ $json.gap1 ? '<li>' + $json.gap1 + '</li>' : '' }}{{ $json.gap2 ? '<li>' + $json.gap2 + '</li>' : '' }}{{ $json.gap3 ? '<li>' + $json.gap3 + '</li>' : '' }}</ul><p style='color:#333;margin:0 0 15px 0'>Frameworks assessed: {{ $json.frameworks }}</p><div style='background:#fef3c7;border-radius:8px;padding:15px;margin:0 0 15px 0'><h3 style='margin:0 0 8px 0;color:#92400e;font-size:16px'>What's Next?</h3><p style='margin:0;color:#78350f;font-size:14px'>Let's discuss your results and create a roadmap to address these gaps before they become incidents.</p></div><p style='text-align:center;margin:0 0 20px 0'><a href='https://book.cyberreadylabs.com' style='display:inline-block;background:#D4A843;color:#fff;padding:14px 28px;text-decoration:none;border-radius:8px;font-weight:bold;font-size:15px'>Schedule a 15-Minute Discovery Call \u2192</a></p><div style='background:#e0f2fe;border-radius:8px;padding:15px;margin:0 0 15px 0;text-align:center'><p style='margin:0 0 10px 0;color:#0369a1;font-size:14px'><strong>Want to learn how to fix these gaps?</strong></p><p style='margin:0'><a href='https://cyberreadylabs.com/playbook' style='display:inline-block;background:#0284c7;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px'>Download Our Free Policy-as-Code Guide</a></p></div></div><div style='background:#1a365d;color:#fff;padding:15px;text-align:center;font-size:12px'><p style='margin:0'>&copy; 2026 CyberReadyLabs | cyberreadylabs.com</p></div></div>",
+        "subject": "Your CyberReadyLabs Security Assessment Results",
+        "toEmail": "={{ $json.email }}"
+      },
+      "position": [
+        500,
+        400
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

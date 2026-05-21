@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily n8n workflow export → Gitea
+Documentation=https://git.local.example.home/john/homelab-configs/src/branch/main/scripts/n8n-workflow-export.py
+
+[Timer]
+# Daily at 13:00 UTC = 09:00 ET DST = 08:00 ET standard.
+# Francis fires at 12:00 UTC, completes by ~12:00:15. 1-hour buffer is plenty.
+OnCalendar=*-*-* 13:00:00 UTC
+Persistent=true
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target
+# Installed as user-level unit: `systemctl --user enable --now n8n-workflow-export.timer`

@@ -1,0 +1,300 @@
+{
+  "active": false,
+  "connections": {
+    "Download File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Transform with Claude",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save to Nextcloud",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List All Files (WebDAV)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse File List",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse File List": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save to Nextcloud": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Mon & Wed 8PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List All Files (WebDAV)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Transform with Claude": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Response",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "KESf0Q_YJfhPW26cfjeys",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "LinkedIn Content Transformer v3",
+  "nodes": [
+    {
+      "id": "beb98f28-70e2-45f4-92ef-8839137d2856",
+      "name": "Schedule: Mon & Wed 8PM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 8 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -80,
+        -256
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "6ab80af7-de0a-44b9-9ad8-a83c6e7f7371",
+      "name": "List All Files (WebDAV)",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "infinity"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {},
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/GeorgeWashington/Classes"
+      },
+      "position": [
+        144,
+        -256
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "b7d55657-cfcb-4a8b-a70d-b9fa7e149b60",
+      "name": "Parse File List",
+      "parameters": {
+        "jsCode": "// Parse XML response and extract .md and .docx files\nconst xml = $input.item.json.data;\n\n// Extract all response blocks\nconst responsePattern = /<d:response>([\\s\\S]*?)<\\/d:response>/g;\nconst files = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const responseBlock = match[1];\n  \n  // Extract href\n  const hrefMatch = responseBlock.match(/<d:href>(.*?)<\\/d:href>/);\n  if (!hrefMatch) continue;\n  \n  const href = hrefMatch[1];\n  \n  // Check if resourcetype contains collection tag (if yes, it's a folder)\n  const isFolder = responseBlock.includes('<d:collection');\n  \n  // Only include files (not folders) that end with .md or .docx\n  if (!isFolder && (href.endsWith('.md') || href.endsWith('.docx'))) {\n    files.push({ path: href });\n  }\n}\n\nconsole.log(`Found ${files.length} .md or .docx files out of 719 total items`);\n\nreturn files;"
+      },
+      "position": [
+        272,
+        -16
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "bca788cd-326e-4c73-916a-1184d7ec9b31",
+      "name": "Download File",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {},
+        "url": "=https://nextcloud.local.example.home{{$json.path}}"
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "03128613-5457-4b2f-9cc5-f39bf2eaf117",
+      "name": "Extract Content",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        1088,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "a77f544d-4c68-4226-967e-37109aa416eb",
+      "name": "Transform with Claude",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={\"model\":\"claude-sonnet-4-20250514\",\"max_tokens\":2000,\"messages\":[{\"role\":\"user\",\"content\":\"Test message\"}]}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        1296,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "19f4cbc8-a469-4204-b815-3b44b3f01fc7",
+      "name": "Extract Response",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        1536,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "6f8908b4-bc87-4db3-b9ab-3a53d30fff63",
+      "name": "Save to Nextcloud",
+      "parameters": {
+        "fileContent": "={{$json.content[0].text}}",
+        "path": "=/Personal/LinkedIn/Pending_Review/test_output.md"
+      },
+      "position": [
+        1760,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "3b84ee98-4f2b-4c61-9afd-97d8ca6a325d",
+      "name": "Send Telegram",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\ud83d\udd14 New LinkedIn Post Ready!\n\nWorkflow completed successfullyLinkedIn Content Transformer workflow completed successfully!\n\u270d\ufe0f Preview:\n{{ $json.transformedPost.substring(0, 250) }}...\n\n\ud83d\udc49 Review in Nextcloud!"
+      },
+      "position": [
+        1984,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "861cb752-7338-4afb-8a20-09a15fb06731"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

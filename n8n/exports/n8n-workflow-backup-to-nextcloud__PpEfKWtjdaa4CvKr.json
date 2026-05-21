@@ -1,0 +1,196 @@
+{
+  "active": true,
+  "connections": {
+    "Create Backup File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload Backup",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Daily Backup (2 AM)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get All Workflows",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get All Workflows": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Backup File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get All Workflows",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload Backup": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "PpEfKWtjdaa4CvKr",
+  "isArchived": false,
+  "meta": null,
+  "name": "n8n Workflow Backup to Nextcloud",
+  "nodes": [
+    {
+      "id": "trigger-schedule",
+      "name": "Daily Backup (2 AM)",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 2 * * *",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "parameters": {},
+      "position": [
+        0,
+        160
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EZSuF0gahVH3WEVa",
+          "name": "Header Auth account"
+        }
+      },
+      "id": "get-workflows",
+      "name": "Get All Workflows",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET",
+        "options": {},
+        "url": "https://n8n.local.example.home/api/v1/workflows?limit=250"
+      },
+      "position": [
+        280,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "create-backup",
+      "name": "Create Backup File",
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst workflows = response.data || [];\nconst now = new Date();\nconst dateStr = now.toISOString().split('T')[0];\nconst timeStr = now.toISOString().split('T')[1].split('.')[0].replace(/:/g, '-');\n\nconst backup = {\n  exportedAt: now.toISOString(),\n  n8nVersion: '2.x',\n  workflowCount: workflows.length,\n  workflows: workflows\n};\n\nconst fileName = `n8n_backup_${dateStr}_${timeStr}.json`;\nconst content = JSON.stringify(backup, null, 2);\n\nreturn [{\n  json: {\n    fileName,\n    content,\n    workflowCount: workflows.length,\n    dateStr\n  }\n}];"
+      },
+      "position": [
+        520,
+        80
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "upload-backup",
+      "name": "Upload Backup",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "body": "={{ $json.content }}",
+        "contentType": "raw",
+        "genericAuthType": "httpBasicAuth",
+        "method": "PUT",
+        "options": {},
+        "sendBody": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav/CODISTECH/HomeLab/backups/{{ $json.fileName }}"
+      },
+      "position": [
+        1000,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "notify",
+      "name": "Send Notification",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        },
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\u2705 *n8n Backup Complete*\n\nDate: {{ $json.dateStr }}\nWorkflows: {{ $json.workflowCount }}\nFile: `{{ $json.fileName }}`\n\nLocation: `/CODISTECH/HomeLab/backups/`"
+      },
+      "position": [
+        1240,
+        80
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Daily Backup (2 AM)": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}

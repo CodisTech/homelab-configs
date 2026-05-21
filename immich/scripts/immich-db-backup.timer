@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Immich pg_dumpall — fires before restic-backup.timer (03:30 UTC) so the DB dump is included in the same B2 snapshot as the photos
+Documentation=https://git.local.example.home/john/homelab-configs/src/branch/main/immich
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+Persistent=true
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,300 @@
+{
+  "active": true,
+  "connections": {
+    "Extract Client IPs & Domains": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Format Telegram Message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Format Other Alerts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Other Alert",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram Alert",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Grafana Alert Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Split Individual Alerts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Is Adult Site Alert?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Query Loki for Client IPs",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Format Other Alerts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Query Loki for Client IPs": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Client IPs & Domains",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Split Individual Alerts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Is Adult Site Alert?",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "BBBZD6tADh7bPmLk",
+  "isArchived": false,
+  "meta": null,
+  "name": "Grafana Alert \u2192 Telegram Notifications",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Grafana Alert Webhook",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "grafana-alert"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "grafana-alert"
+    },
+    {
+      "id": "split-alerts",
+      "name": "Split Individual Alerts",
+      "parameters": {
+        "fieldToSplitOut": "body.alerts",
+        "options": {}
+      },
+      "position": [
+        200,
+        0
+      ],
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1
+    },
+    {
+      "id": "check-adult-site",
+      "name": "Is Adult Site Alert?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-1772672772221-1kl9bummi",
+              "leftValue": "={{ $json.labels.alertname }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "Adult Site"
+            }
+          ],
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        400,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "query-loki",
+      "name": "Query Loki for Client IPs",
+      "parameters": {
+        "method": "GET",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 10000
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "{job=\"pihole\"} |~ \"(?i)(porn|xxx|adult|pornhub|xvideos)\" |~ \"query\\\\[\" | regexp `from (?P<client>[0-9.]+)`"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "start",
+              "value": "={{ Math.floor((Date.now() - 300000) / 1000) }}"
+            },
+            {
+              "name": "end",
+              "value": "={{ Math.floor(Date.now() / 1000) }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "url": "https://10.0.60.11:3100/loki/api/v1/query_range"
+      },
+      "position": [
+        620,
+        -100
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "extract-ips",
+      "name": "Extract Client IPs & Domains",
+      "parameters": {
+        "jsCode": "const lokiResponse = $input.first().json;\nconst alertData = $('Is Adult Site Alert?').first().json;\n\nconst clientIPs = new Set();\nconst domains = new Set();\n\nif (lokiResponse.data && lokiResponse.data.result) {\n  for (const stream of lokiResponse.data.result) {\n    if (stream.stream && stream.stream.client) {\n      clientIPs.add(stream.stream.client);\n    }\n    if (stream.values) {\n      for (const [ts, line] of stream.values) {\n        const ipMatch = line.match(/from\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)/);\n        if (ipMatch) clientIPs.add(ipMatch[1]);\n        const domainMatch = line.match(/query\\[[A-Z]+\\]\\s+([^\\s]+)/);\n        if (domainMatch) domains.add(domainMatch[1]);\n      }\n    }\n  }\n}\n\nreturn {\n  json: {\n    ...alertData,\n    clientIPs: Array.from(clientIPs),\n    domains: Array.from(domains),\n    logCount: lokiResponse.data?.result?.length || 0\n  }\n};",
+        "mode": "runOnceForAllItems"
+      },
+      "position": [
+        840,
+        -100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "format-message",
+      "name": "Format Telegram Message",
+      "parameters": {
+        "jsCode": "const alert = $input.item.json;\nconst status = alert.status || 'unknown';\nconst severity = (alert.labels && alert.labels.severity) || 'warning';\nconst alertName = (alert.labels && alert.labels.alertname) || 'Unknown Alert';\nconst clientIPs = alert.clientIPs || [];\nconst domains = alert.domains || [];\nlet statusEmoji = '\ud83d\udea8';\nif (status === 'resolved') statusEmoji = '\u2705';\nconst summary = (alert.annotations && (alert.annotations.summary || alert.annotations.description)) || 'Adult site query detected';\nlet timestamp;\nif (alert.startsAt) {\n  timestamp = new Date(alert.startsAt).toLocaleString('en-US', { timeZone: 'America/New_York' });\n} else {\n  timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });\n}\nlet message = statusEmoji + ' *' + status.toUpperCase() + '* - ' + alertName + '\\n\\n';\nmessage += '*Summary:* ' + summary + '\\n';\nmessage += '*Time:* ' + timestamp + '\\n\\n';\nif (clientIPs.length > 0) {\n  message += '*Client IP(s):*\\n';\n  for (const ip of clientIPs) message += '  - `' + ip + '`\\n';\n} else {\n  message += '*Client IP(s):* Unable to retrieve\\n';\n}\nif (domains.length > 0) {\n  message += '\\n*Domain(s) Queried:*\\n';\n  for (const domain of domains) message += '  - `' + domain + '`\\n';\n}\nconst dashboardUrl = alert.generatorURL || alert.dashboardURL || '';\nif (dashboardUrl) message += '\\n[View in Grafana](' + dashboardUrl + ')';\nreturn { json: { alertName, status, severity, message, clientIPs, domains, dashboardUrl } };",
+        "mode": "runOnceForEachItem"
+      },
+      "position": [
+        1060,
+        -100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "SfsFUMqCiLly5SDU",
+          "name": "CodisTech Alerts"
+        }
+      },
+      "id": "telegram-send",
+      "name": "Send Telegram Alert",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "disable_web_page_preview": true,
+          "parse_mode": "Markdown"
+        },
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        1280,
+        -100
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "format-other",
+      "name": "Format Other Alerts",
+      "parameters": {
+        "jsCode": "const alert = $input.item.json;\nconst status = alert.status || 'unknown';\nconst severity = (alert.labels && alert.labels.severity) || 'info';\nconst alertName = (alert.labels && alert.labels.alertname) || 'Unknown Alert';\nlet statusEmoji = '\ud83d\udfe1';\nif (status === 'firing') {\n  statusEmoji = severity === 'critical' ? '\ud83d\udd34' : '\ud83d\udfe1';\n} else if (status === 'resolved') {\n  statusEmoji = '\ud83d\udfe2';\n}\nconst summary = (alert.annotations && (alert.annotations.summary || alert.annotations.description)) || 'No description provided';\nlet valuesStr = 'N/A';\nif (alert.valueString) {\n  valuesStr = alert.valueString;\n} else if (alert.values && typeof alert.values === 'object') {\n  const entries = Object.entries(alert.values);\n  if (entries.length > 0) valuesStr = entries.map(e => e[0] + ': ' + e[1]).join(', ');\n}\nlet timestamp;\nif (alert.startsAt) {\n  timestamp = new Date(alert.startsAt).toLocaleString('en-US', { timeZone: 'America/New_York' });\n} else {\n  timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });\n}\nconst dashboardUrl = alert.generatorURL || alert.dashboardURL || '';\nlet message = statusEmoji + ' *' + status.toUpperCase() + '* - ' + alertName + '\\n\\n';\nmessage += '*Severity:* ' + severity + '\\n';\nmessage += '*Summary:* ' + summary + '\\n';\nmessage += '*Values:* ' + valuesStr + '\\n';\nmessage += '*Time:* ' + timestamp;\nif (dashboardUrl) message += '\\n\\n[View in Grafana](' + dashboardUrl + ')';\nreturn { json: { alertName, status, severity, message, dashboardUrl } };",
+        "mode": "runOnceForEachItem"
+      },
+      "position": [
+        620,
+        100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "SfsFUMqCiLly5SDU",
+          "name": "CodisTech Alerts"
+        }
+      },
+      "id": "telegram-other",
+      "name": "Send Other Alert",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "disable_web_page_preview": true,
+          "parse_mode": "Markdown"
+        },
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        840,
+        100
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

@@ -1,0 +1,226 @@
+{
+  "active": false,
+  "connections": {
+    "Download File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Filter MD and DOCX Files": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Files from Classes": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Filter MD and DOCX Files",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Files from Classes",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save to Pending Review": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "zO5zEbTTNfULqHUHW67Ta",
+  "isArchived": true,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "LinkedIn Content Transformer",
+  "nodes": [
+    {
+      "id": "46863d62-cdb4-45d6-bd6b-5a45dc6b905f",
+      "name": "Manual Trigger",
+      "parameters": {},
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "72356094-2d09-4bd6-8b11-0f8f9585edba",
+      "name": "List Files from Classes",
+      "parameters": {
+        "operation": "list",
+        "path": "/GeorgeWashington/Classes",
+        "resource": "folder"
+      },
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "f4bf2b32-504c-482b-ba70-5437a5e73b79",
+      "name": "Filter MD and DOCX Files",
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "operation": "regex",
+              "value1": "={{$json.basename}}",
+              "value2": "\\.(md|docx)$"
+            }
+          ]
+        }
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "32968519-f682-4b03-8859-9bed7c281b8c",
+      "name": "Download File",
+      "parameters": {
+        "operation": "download",
+        "path": "={{$json.path}}"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "dfc02604-ef74-4710-acfb-60cd8a64081e",
+      "name": "Extract Content",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "9383992c-e439-49be-8f77-659fbdc760d9",
+      "name": "Transform with Claude",
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {}
+      },
+      "position": [
+        1104,
+        0
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "c707f346-6df2-4fda-a614-9e9cd194bff2",
+      "name": "Save to Pending Review",
+      "parameters": {
+        "fileContent": "={{$json.response}}",
+        "path": "/Personal/LinkedIn/Pending_Review/{{$json.fileName.replace('.docx', '.md')}}"
+      },
+      "position": [
+        1328,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "ba71c67e-612c-42ad-9203-b07f290eeefa",
+      "name": "Send Telegram Notification",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "chatId": "1290054454",
+        "text": "\ud83d\udd14 New LinkedIn Post Ready for Review!\n\n\ud83d\udcc1 File: {{$json.fileName}}\n\ud83d\udccd Location: /LinkedIn/Pending_Review/\n\n\u270d\ufe0f Preview:\n{{$json.response.substring(0, 300)}}...\n\n\ud83d\udc49 Review in Nextcloud and post manually if you like it!"
+      },
+      "position": [
+        1552,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "622c59df-6eab-4d30-afd4-927e26d4fde1"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

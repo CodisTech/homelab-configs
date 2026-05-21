@@ -1,0 +1,19 @@
+host,vmid,current_name,status,cores,memory_mb,bridge,vlan,current_tier,target_tier,target_name,action,notes
+pve-server-a,100,claude-code-host,running,4,4096,vmbr0,-,utility,infra-core,infra-claude-a-01,rename,Active Claude Code VM at .60.108; rename during planned maintenance
+pve-server-a,201,k3s-control,running,16,16384,vmbr0,-,k3s,k3s,k3s-cp-a,retire+rebuild,Replaced by Talos CP on Server A in Stage 6
+pve-server-a,202,k3s-worker-1,running,16,24576,vmbr0,-,k3s,k3s,k3s-worker-a-01,retire+rebuild,GPU worker; rebuild on Talos in Stage 6 keeping GPU passthrough
+pve-server-c,100,ubuntuserver22,running,12,32768,vmbr0,-,docker-services,infra-core,infra-services-c-01,rename,Hosts monitoring stack + Pi-hole + Vault unseal + n8n + Nextcloud + ~30 containers; LARGE workload host
+pve-server-c,107,UnifiOS,running,6,4096,vmbr1,40,network,infra-network,network-unifi-c-01,rename,UniFi controller; goes to new infra-network tier
+pve-server-c,109,opnsense-1,running,4,4096,vmbr3,-,firewall,firewall,fw-opnsense-c-secondary,rename+demote,Active firewall today; becomes CARP secondary after Stage 4 Dell cutover
+pve-server-c,110,opnsense-2,stopped,4,4096,vmbr3,-,firewall,retire,-,remove,Dead failover; never worked; replaced by Dell rebuild
+pve-server-c,111,cyberreadylabs,running,4,8192,vmbr1,70,prod-crl,prod-crl,crl-prod-web-c-01,rename,Production CRL Docker host
+pve-server-c,112,suricata,running,4,6144,vmbr1,60,security,infra-security,security-suricata-c-01,rename,NEW infra-security tier (separate from infra-core)
+pve-server-c,113,haos,running,4,6144,vmbr0,-,smarthome,infra-core,infra-haos-c-01,rename,Real production smart-home controller; moved from experiments to infra-core
+pve-server-c,203,k3s-worker-2,running,4,16384,vmbr0,-,k3s,k3s,k3s-worker-c-02,retire+rebuild,Replaced by Talos worker in Stage 6
+pve-server-c,204,k3s-worker-3,running,4,16384,vmbr1,60,k3s,k3s,k3s-worker-c-03,retire+rebuild,Replaced by Talos worker in Stage 6
+pve-server-c,9000,k3s-worker-template,stopped,4,16384,vmbr1,60,template,retire,-,remove,Cloud-init template; obsolete with Talos
+pve-server-d,109,opnsense-dell,stopped,4,4096,vmbr2,trunk,firewall,firewall,fw-opnsense-d-primary,activate,Stage 4 target: bring online + CARP primary
+pve-server-b,planned,truenas-storage,planned,-,-,-,-,-,storage,storage-truenas-b-01,create,Stage 2a build target (TrueNAS VM on B with HBA passthrough)
+pve-server-b,planned,k3s-cp-b,planned,-,8192,-,-,-,k3s,k3s-cp-b,create,Stage 6 build target (Talos CP)
+pve-server-b,planned,k3s-worker-b-01,planned,-,-,-,-,-,k3s,k3s-worker-b-01,create,Stage 6 build target (Talos worker)
+pve-server-b,planned,crl-prod-web-secondary,planned,-,-,-,-,-,prod-crl,crl-prod-web-b-01-replica,create,Stage 8 build target (ZFS replication target for CRL HA)

@@ -1,0 +1,555 @@
+{
+  "active": false,
+  "connections": {
+    "Check LinkedIn Success": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Move to Published",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Notify LinkedIn Failed",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Image",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Post Text",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Tracking": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Update Tracking Published",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Post Text": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Post to LinkedIn",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Find Approved Posts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Approved Post?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Approved Post?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Content",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Notify No Posts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Approved Folder": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Find Approved Posts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Move to Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Tracking",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Post to LinkedIn": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check LinkedIn Success",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Tue & Thu 7AM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Approved Folder",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update Tracking Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload Tracking",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload Tracking": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify Published",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "BYocUymMfReVZVm2",
+  "isArchived": false,
+  "meta": null,
+  "name": "LinkedIn Publisher",
+  "nodes": [
+    {
+      "id": "c3000001-0000-0000-0000-000000000001",
+      "name": "Schedule: Tue & Thu 7AM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 7 * * 2,4",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -80,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-000000000002",
+      "maxTries": 2,
+      "name": "List Approved Folder",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {},
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Approved"
+      },
+      "position": [
+        140,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c3000001-0000-0000-0000-000000000003",
+      "name": "Find Approved Posts",
+      "parameters": {
+        "jsCode": "const xml = $input.item.json.data;\n\n// Extract directory entries from WebDAV response\nconst responsePattern = /<d:response>[\\s\\S]*?<d:href>([^<]+)<\\/d:href>[\\s\\S]*?<\\/d:response>/g;\nconst folders = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const href = decodeURIComponent(match[1]);\n  // Look for post_ folders (skip the Approved/ folder itself)\n  const postMatch = href.match(/Approved\\/(post_\\d+)\\/?$/);\n  if (postMatch) {\n    folders.push(postMatch[1]);\n  }\n}\n\nif (folders.length === 0) {\n  return [{ json: { hasPost: false, message: 'No approved posts available for publishing' } }];\n}\n\n// Pick the first (oldest) approved post\nconst postId = folders.sort()[0];\n\nreturn [{ json: { hasPost: true, postId } }];"
+      },
+      "position": [
+        360,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "c3000001-0000-0000-0000-000000000004",
+      "name": "Has Approved Post?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond_has_post",
+              "leftValue": "={{ $json.hasPost }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        580,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-000000000005",
+      "maxTries": 2,
+      "name": "Download Content",
+      "parameters": {
+        "binaryPropertyName": "postContent",
+        "operation": "download",
+        "path": "=/Personal/LinkedIn/Approved/{{ $json.postId }}/content.txt"
+      },
+      "position": [
+        800,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-000000000006",
+      "maxTries": 2,
+      "name": "Download Image",
+      "parameters": {
+        "binaryPropertyName": "data",
+        "operation": "download",
+        "path": "=/Personal/LinkedIn/Approved/{{ $('Find Approved Posts').item.json.postId }}/image.png"
+      },
+      "position": [
+        1020,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c3000001-0000-0000-0000-000000000007",
+      "name": "Extract Post Text",
+      "parameters": {
+        "jsCode": "const postContent = $input.item.binary.postContent;\nconst postText = Buffer.from(postContent.data, 'base64').toString('utf-8');\nconst postId = $('Find Approved Posts').item.json.postId;\n\n// Pass through the image binary as 'data'\nreturn [{\n  json: { postText, postId },\n  binary: { data: $input.item.binary.data }\n}];"
+      },
+      "position": [
+        1240,
+        -120
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "continueOnFail": false,
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "__LINKEDIN_CREDENTIAL__",
+          "name": "LinkedIn OAuth2"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-000000000008",
+      "maxTries": 2,
+      "name": "Post to LinkedIn",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "visibility": "PUBLIC"
+        },
+        "binaryPropertyName": "data",
+        "person": "",
+        "postAs": "person",
+        "shareMediaCategory": "IMAGE",
+        "text": "={{ $json.postText }}"
+      },
+      "position": [
+        1460,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "c3000001-0000-0000-0000-000000000009",
+      "name": "Check LinkedIn Success",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond_linkedin_ok",
+              "leftValue": "={{ $json.id || $json.activity }}",
+              "operator": {
+                "operation": "notEmpty",
+                "type": "object"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        1680,
+        -120
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-00000000000a",
+      "name": "Move to Published",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Destination",
+              "value": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Published/{{ $('Extract Post Text').item.json.postId }}"
+            }
+          ]
+        },
+        "method": "MOVE",
+        "options": {},
+        "sendHeaders": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Approved/{{ $('Extract Post Text').item.json.postId }}"
+      },
+      "position": [
+        1900,
+        -240
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-00000000000b",
+      "name": "Download Tracking",
+      "parameters": {
+        "binaryPropertyName": "trackingFile",
+        "operation": "download",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        2120,
+        -240
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "c3000001-0000-0000-0000-00000000000c",
+      "name": "Update Tracking Published",
+      "parameters": {
+        "jsCode": "const binaryData = $input.item.binary.trackingFile;\nconst rawContent = Buffer.from(binaryData.data, 'base64').toString('utf-8');\nconst tracking = JSON.parse(rawContent);\nconst postId = $('Extract Post Text').item.json.postId;\n\nconst entry = tracking.processedFiles.find(f => f.postId === postId);\nif (entry) {\n  entry.status = 'published';\n  entry.publishedDate = new Date().toISOString();\n}\ntracking.lastUpdated = new Date().toISOString();\n\nreturn [{ json: { trackingContent: JSON.stringify(tracking, null, 2), postId } }];"
+      },
+      "position": [
+        2340,
+        -240
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-00000000000d",
+      "name": "Upload Tracking",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $json.trackingContent }}",
+        "operation": "upload",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        2560,
+        -240
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-00000000000e",
+      "name": "Notify Published",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=LinkedIn post published successfully!\n\nPost ID: {{ $json.postId }}\n\nThe post is now live on your LinkedIn profile."
+      },
+      "position": [
+        2780,
+        -240
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-00000000000f",
+      "name": "Notify LinkedIn Failed",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=LinkedIn publishing FAILED for post {{ $('Extract Post Text').item.json.postId }}.\n\nThe post remains in the Approved folder and will retry on the next scheduled run.\n\nPlease check your LinkedIn credentials in n8n if this persists."
+      },
+      "position": [
+        1900,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "c3000001-0000-0000-0000-000000000010",
+      "name": "Notify No Posts",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "LinkedIn Publisher: No approved posts available for today. Approve a pending post via Telegram to queue it for the next publishing run."
+      },
+      "position": [
+        800,
+        120
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

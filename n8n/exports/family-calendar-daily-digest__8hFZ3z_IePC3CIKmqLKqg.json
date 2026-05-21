@@ -1,0 +1,345 @@
+{
+  "active": false,
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code in JavaScript",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Y - Personal",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Y - GWU",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Y - Navy",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "T - Personal",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "T - Umich",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Personal": {
+      "main": [
+        [
+          {
+            "index": 1,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Umich": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - GWU": {
+      "main": [
+        [
+          {
+            "index": 3,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Navy": {
+      "main": [
+        [
+          {
+            "index": 2,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Personal": {
+      "main": [
+        [
+          {
+            "index": 4,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "8hFZ3z_IePC3CIKmqLKqg",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Family Calendar Daily Digest",
+  "nodes": [
+    {
+      "id": "dab8d55a-e1c1-45b0-bbdb-da6b0931ee75",
+      "name": "Schedule Trigger",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "30 5 * * *",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "65a7c88f-afa8-4f15-80b5-781fef39cf83",
+      "name": "Code in JavaScript",
+      "parameters": {
+        "jsCode": "const events = $input.all();\nconst today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Detroit' });\n\nfunction getCalendarName(email) {\n  if (!email) return '\ud83d\udcc5 Unknown';\n  \n  if (email.includes('tammylillystone')) return '\ud83d\udc69 Tamta';\n  if (email.includes('jcodis@gmail')) return '\ud83d\udc68 Yianni';\n  if (email.includes('gwmail.gwu.edu')) return '\ud83c\udf93 Yianni (GWU)';\n  if (email.includes('k54kdr8r17632o7mhebt59u9cij53v62')) return '\ud83c\udf93 Tamta (UMich)';\n  \n  return '\ud83d\udcc5 ' + email.split('@')[0];\n}\n\nlet message = `\ud83d\udcc5 *Family Calendar Digest*\\n${today}\\n\\n`;\n\n// Sort events by start time (earliest first)\nconst sortedEvents = [...events].sort((a, b) => {\n  const aTime = a.json.start?.dateTime || a.json.start?.date || '9999';\n  const bTime = b.json.start?.dateTime || b.json.start?.date || '9999';\n  return new Date(aTime) - new Date(bTime);\n});\n\nif (sortedEvents.length === 0) {\n  message += \"No events scheduled for today! \ud83c\udf89\";\n} else {\n  message += `*Today's Events (${sortedEvents.length}):*\\n\\n`;\n  \n  for (const event of sortedEvents) {\n    const e = event.json;\n    let summary = e.summary;\n    const calendarSource = getCalendarName(e.organizer?.email);\n    \n    if (!summary) {\n      summary = `(No title - ${e.organizer?.email || 'unknown'})`;\n    }\n    \n    let timeStr = 'All day';\n    if (e.start && e.start.dateTime) {\n      const start = new Date(e.start.dateTime);\n      const end = new Date(e.end.dateTime);\n      timeStr = start.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit'}) + ' - ' + end.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit'});\n    }\n    \n    message += `\u2022 *${summary}*\\n  \ud83d\udd50 ${timeStr}  |  ${calendarSource}\\n\\n`;\n  }\n}\n\nmessage += '\\n\\n\ud83c\udfe0 Message sent by your friendly neighborhood tech';\n\nreturn [{ json: { message } }];"
+      },
+      "position": [
+        1088,
+        -112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "iC6WtTBQOVlVkhGC",
+          "name": "Family Calendar Digest"
+        }
+      },
+      "id": "e229ae44-3b5a-467b-9722-eb91558cbcf0",
+      "name": "Send a text message",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": "-5140130059",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        1392,
+        -112
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "4b891703-7ff0-479b-880e-73df06b8b9de"
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "00d1de3a-e83b-49cd-8575-b93d0d9b5c57",
+      "name": "Y - Personal",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        432,
+        288
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "4a5d017d-0291-469f-a71c-d369c2378b97",
+      "name": "Y - GWU",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "john.codis@gwmail.gwu.edu",
+          "mode": "list",
+          "value": "john.codis@gwmail.gwu.edu"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        432,
+        96
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "b6d1ae2d-ed86-496b-86ba-8ef0589b1331",
+      "name": "Y - Navy",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "Navy",
+          "mode": "list",
+          "value": "kou9jkankc0f09rrt3v8k7g66s@group.calendar.google.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        416,
+        -80
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "a8cf6840-4096-4d69-ad0e-856106d8e176",
+      "name": "T - Personal",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        416,
+        -240
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "b18c862c-df72-4d96-b1e6-003153829365",
+      "name": "T - Umich",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "Tamta Lilly Stone Calendar (Canvas)",
+          "mode": "list",
+          "value": "k54kdr8r17632o7mhebt59u9cij53v62@import.calendar.google.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        416,
+        -416
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "a4a15e11-746b-4d20-845e-4a7a610f50c8",
+      "name": "Merge",
+      "parameters": {
+        "numberInputs": 5
+      },
+      "position": [
+        848,
+        -176
+      ],
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

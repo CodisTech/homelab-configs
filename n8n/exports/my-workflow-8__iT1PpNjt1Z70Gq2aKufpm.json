@@ -1,0 +1,462 @@
+{
+  "active": false,
+  "connections": {
+    "Check Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save to Published",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Rejection",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Source File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Generate LinkedIn Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Approval Request",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Find Source Document": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Source File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Pending_Review Files": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Find Source Document",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Remove from Pending_Review": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Success",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save to Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Remove from Pending_Review",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Mon & Wed 8PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Pending_Review Files",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait for Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check Decision",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "iT1PpNjt1Z70Gq2aKufpm",
+  "isArchived": true,
+  "meta": null,
+  "name": "My workflow 8",
+  "nodes": [
+    {
+      "id": "e852bdd7-8bc7-4f18-ae50-d9afe4ac3cc1",
+      "name": "Schedule: Mon & Wed 8PM",
+      "notes": "Triggers every Monday and Wednesday at 8:00 PM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 20 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -1760,
+        112
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "5add672d-c6a1-4116-bb70-dd19ccabd457",
+      "name": "List Pending_Review Files",
+      "notes": "Lists all files in Pending_Review folder",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {},
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Pending_Review"
+      },
+      "position": [
+        -1536,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "86d89c6e-46db-4f45-a01e-09eeda4d57c6",
+      "name": "Find Source Document",
+      "notes": "Finds first source document (not a linkedin_post file)",
+      "parameters": {
+        "jsCode": "// Parse XML and find first .md or .docx file (not already a linkedin_post)\nconst xml = $input.item.json.data;\nconst responsePattern = /<d:response>([\\s\\S]*?)<\\/d:response>/g;\nconst files = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const responseBlock = match[1];\n  const hrefMatch = responseBlock.match(/<d:href>(.*?)<\\/d:href>/);\n  if (!hrefMatch) continue;\n  \n  const href = hrefMatch[1];\n  const isFolder = responseBlock.includes('<d:collection');\n  const filename = href.split('/').pop();\n  \n  // Skip folders, skip files that are already linkedin posts\n  if (!isFolder && \n      (href.endsWith('.md') || href.endsWith('.docx')) &&\n      !filename.startsWith('linkedin_post')) {\n    files.push({\n      href,\n      filename,\n      downloadUrl: 'https://nextcloud.local.example.home' + href\n    });\n  }\n}\n\nif (files.length === 0) {\n  throw new Error('No source documents found in Pending_Review folder. Add some documents there to process!');\n}\n\n// Select first file\nconst selectedFile = files[0];\nconsole.log(`Found ${files.length} source document(s). Selected: ${selectedFile.filename}`);\n\nreturn {\n  selectedFile: selectedFile.href,\n  filename: selectedFile.filename,\n  downloadUrl: selectedFile.downloadUrl,\n  totalAvailable: files.length\n};"
+      },
+      "position": [
+        -1328,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "14f9ca5b-12f5-400e-89fe-db3f561e7c82",
+      "name": "Download Source File",
+      "notes": "Downloads the source document content",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {},
+        "url": "={{$json.downloadUrl}}"
+      },
+      "position": [
+        -1104,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "a5ab6299-24e7-4eba-a058-261a0033c38b",
+      "name": "Extract Content",
+      "notes": "Extracts text content from the file",
+      "parameters": {
+        "jsCode": "// Extract file content\nconst fileContent = $input.item.binary?.data ? \n  Buffer.from($input.item.binary.data.data, 'base64').toString('utf-8') :\n  $input.item.json.data || '';\n\nif (!fileContent || fileContent.length < 50) {\n  throw new Error('File content is empty or too short. Make sure the source document has content.');\n}\n\nconsole.log(`Extracted ${fileContent.length} characters of content`);\n\nreturn {\n  ...$json,\n  fileContent: fileContent.substring(0, 15000), // Limit to 15k chars for Claude\n  contentLength: fileContent.length\n};"
+      },
+      "position": [
+        -880,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "56e0121e-a140-41e3-bbd7-eb33b3c8c1ba",
+      "name": "Generate LinkedIn Post",
+      "notes": "Uses Claude to create professional LinkedIn post",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 2000,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a cybersecurity professional creating LinkedIn content for John Codis, a Navy cybersecurity leader launching CyberReadyLabs consulting.\\n\\nIMPORTANT: Write in plain text only. Do not use asterisks, underscores, brackets, or any markdown formatting characters.\\n\\nTransform the following content into an engaging LinkedIn post that:\\n1. Opens with a compelling hook related to a cybersecurity challenge\\n2. Shares 2-3 key insights from the content\\n3. Includes practical advice for security professionals\\n4. Ends with a thought-provoking question to drive engagement\\n5. Uses professional LinkedIn formatting (short paragraphs, no special characters)\\n6. Keeps it under 1300 characters\\n7. Positions John as a knowledgeable leader in cybersecurity compliance and risk management\\n\\nSource document: {{$json.filename}}\\n\\nContent:\\n{{$json.fileContent}}\"\n    }\n  ]\n}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        -656,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "c20d8f26-8188-4fb2-a676-e7e63575f5ca",
+      "name": "Extract Post",
+      "notes": "Extracts the generated post from Claude's response",
+      "parameters": {
+        "jsCode": "// Extract the post content from Claude's response\nconst response = $json;\nconst postContent = response.content?.[0]?.text || '';\n\nif (!postContent) {\n  throw new Error('Claude did not return any content');\n}\n\nconsole.log(`Generated post: ${postContent.length} characters`);\n\nreturn {\n  ...$input.item.json,\n  generatedPost: postContent,\n  postLength: postContent.length,\n  timestamp: new Date().toISOString(),\n  sourceFilename: $('Find Source Document').item.json.filename\n};"
+      },
+      "position": [
+        -448,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "ff7650bb-3a02-42cc-bcb1-88d3bd40f42b",
+      "name": "Send Approval Request",
+      "notes": "Sends post to Telegram with Approve/Reject buttons",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=NEW LINKEDIN POST READY\n\nSource: {{$json.sourceFilename}}\nLength: {{$json.postLength}} characters\n\n{{$json.generatedPost}}\n\nDo you approve this post?"
+      },
+      "position": [
+        -224,
+        112
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "approval-webhook"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "d0425d26-bf59-440c-a2c6-c50881b4f231",
+      "name": "Wait for Decision",
+      "notes": "Waits for user to click Approve or Reject",
+      "parameters": {
+        "additionalFields": {},
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "webhookId": "approval-response"
+    },
+    {
+      "id": "27eb43c5-8e9d-4f6e-a447-f1db8a73f5ab",
+      "name": "Check Decision",
+      "notes": "Routes to approved or rejected path",
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "operation": "equals",
+              "value1": "={{$json.callback_query?.data}}",
+              "value2": "approve_post"
+            }
+          ]
+        }
+      },
+      "position": [
+        224,
+        112
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "6f8e9227-8905-4333-88cc-d1d4610e66e5",
+      "name": "Save to Published",
+      "notes": "Saves approved post to Published folder",
+      "parameters": {
+        "fileContent": "={{$('Extract Post').item.json.generatedPost}}",
+        "path": "=/Personal/LinkedIn/Published/{{$now.format('YYYY-MM-DD')}}_linkedin_post.md"
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "4495ebc0-6703-4889-be89-4a0f2be12ada",
+      "name": "Remove from Pending_Review",
+      "notes": "Removes source file from Pending_Review after approval",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "DELETE",
+        "options": {},
+        "url": "={{$('Find Source Document').item.json.downloadUrl}}"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "64e398de-de31-4d02-80d8-0d43cdafda7c",
+      "name": "Send Success",
+      "notes": "Confirms successful approval",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u2705 *POST APPROVED & SAVED*\\n\\nYour LinkedIn post has been saved to Published folder!\\n\\n\ud83d\udcc2 `/Personal/LinkedIn/Published/`\\n\ud83c\udf89 Ready to manually post to LinkedIn!"
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "success-webhook"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "494acaab-4e84-40ae-9e06-87c64cb26180",
+      "name": "Send Rejection",
+      "notes": "Confirms rejection, file stays in Pending_Review",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u274c *POST REJECTED*\\n\\nThe post was not approved. The source document remains in Pending_Review for future processing."
+      },
+      "position": [
+        448,
+        208
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "reject-webhook"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

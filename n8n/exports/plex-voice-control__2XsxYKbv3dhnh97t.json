@@ -1,0 +1,562 @@
+{
+  "active": true,
+  "connections": {
+    "Build Claude Prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Input Valid?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build Error Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HA: Pause Media": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Success Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HA: Play Media": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Success Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HA: Resume Media": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Success Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HA: Stop Media": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Success Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Input Valid?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Voice Command (Claude)",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Build Error Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Route by Action",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Voice Command (Claude)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Command",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Plex Voice Command": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Claude Prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "HA: Play Media",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "HA: Pause Media",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "HA: Resume Media",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "HA: Stop Media",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Build Error Response",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "2XsxYKbv3dhnh97t",
+  "isArchived": false,
+  "meta": null,
+  "name": "Plex Voice Control",
+  "nodes": [
+    {
+      "id": "plex-trigger",
+      "name": "Plex Voice Command",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "plex-voice",
+        "responseMode": "responseNode"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "02c5485b-d82d-4aab-81b5-cfe687bba0d6"
+    },
+    {
+      "id": "plex-build-prompt",
+      "name": "Build Claude Prompt",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst userText = body.text || '';\nconst conversationId = body.conversation_id || '';\n\nif (!userText.trim()) {\n  return [{\n    json: {\n      hasError: true,\n      error: 'No voice command text provided.',\n      userText: '',\n      conversationId\n    }\n  }];\n}\n\nconst systemPrompt = `You are a home media controller for a Plex media system. Your job is to parse voice commands and return structured JSON.\n\nAVAILABLE ROOMS AND THEIR PLEX PLAYERS:\n- \"living room\" = media_player.plex_plex_for_samsung_tv_2021\n- \"boys room\" or \"boys\" = media_player.plex_plex_for_samsung_tv_2021_2\n- \"master\" or \"master bedroom\" or \"bedroom\" = media_player.master_tv\n- \"all\" or \"all TVs\" or \"everywhere\" or \"every room\" = use entity_id \"all\" and room \"all\" (targets every TV simultaneously)\n\nAVAILABLE PLEX LIBRARIES:\n- movies (media_content_type: MOVIE)\n- tv or \"tv shows\" (media_content_type: EPISODE)\n- p90x (media_content_type: VIDEO, library: P90X)\n- youtube (media_content_type: VIDEO, library: YouTube)\n\nAVAILABLE COMMANDS:\n- play: Start playing specific media content on a specific TV\n- pause: Pause the currently playing media on a specific TV\n- resume: Resume paused media on a specific TV\n- stop: Stop media playback on a specific TV\n\nRULES:\n1. If the user says \"play [title]\" without specifying a room, ask which room (set action to \"error\" with a helpful message)\n2. If the user says \"play\" without a title, set action to \"error\"\n3. For pause/resume/stop, if no room is specified, set action to \"error\" asking which room\n4. Default library is \"movies\" if not specified\n5. For TV shows, try to extract season and episode if mentioned (e.g. \"play breaking bad season 3 episode 5\")\n6. Be flexible with room names: \"living room\", \"the living room\", \"downstairs TV\" all map to living room\n7. \"boys room\", \"kids room\", \"boys\" all map to boys room\n8. \"master\", \"bedroom\", \"master bedroom\", \"our room\" all map to master bedroom\n9. \"all\", \"all TVs\", \"everywhere\", \"every room\", \"all rooms\" map to room \"all\" with entity_id \"all\"\n\nRespond with ONLY valid JSON (no code blocks, no extra text):\n{\n  \"action\": \"play\" | \"pause\" | \"resume\" | \"stop\" | \"error\",\n  \"media_type\": \"MOVIE\" | \"EPISODE\" | \"VIDEO\" | null,\n  \"title\": \"media title or null\",\n  \"season\": null or number,\n  \"episode\": null or number,\n  \"library\": \"movies\" | \"tv\" | \"p90x\" | \"youtube\" | null,\n  \"room\": \"living room\" | \"boys room\" | \"master\" | \"all\" | null,\n  \"entity_id\": \"the full media_player entity_id, or \\\"all\\\" for all TVs, or null\",\n  \"error\": \"friendly error message or null\"\n}`;\n\nconst apiBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 500,\n  messages: [\n    { role: 'user', content: userText }\n  ],\n  system: systemPrompt\n};\n\nreturn [{\n  json: {\n    apiBody,\n    userText,\n    conversationId,\n    hasError: false\n  }\n}];"
+      },
+      "position": [
+        240,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "plex-input-check",
+      "name": "Input Valid?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-no-error",
+              "leftValue": "={{ $json.hasError }}",
+              "operator": {
+                "operation": "false",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        480,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "plex-claude",
+      "maxTries": 2,
+      "name": "Parse Voice Command (Claude)",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify($json.apiBody) }}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        720,
+        -96
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "plex-parse",
+      "name": "Parse Command",
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst userText = $('Build Claude Prompt').first().json.userText;\nconst conversationId = $('Build Claude Prompt').first().json.conversationId;\n\nif (response.error) {\n  return [{\n    json: {\n      action: 'error',\n      error: 'Sorry, I had trouble understanding that. Please try again.',\n      userText, conversationId\n    }\n  }];\n}\n\nlet claudeText = '';\nif (response.content && response.content.length > 0) {\n  claudeText = response.content[0].text.trim();\n}\n\nif (!claudeText) {\n  return [{\n    json: {\n      action: 'error',\n      error: 'Sorry, I did not get a response. Please try again.',\n      userText, conversationId\n    }\n  }];\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(claudeText);\n} catch (e) {\n  const jsonMatch = claudeText.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[1].trim());\n  } else {\n    const objMatch = claudeText.match(/\\{[\\s\\S]*\\}/);\n    if (objMatch) {\n      parsed = JSON.parse(objMatch[0]);\n    } else {\n      return [{\n        json: {\n          action: 'error',\n          error: 'Sorry, I could not process that command. Please try again.',\n          userText, conversationId\n        }\n      }];\n    }\n  }\n}\n\n// Expand \"all\" into the array of all three entity_ids\nif (parsed.entity_id === 'all') {\n  parsed.entity_id = [\n    'media_player.plex_plex_for_samsung_tv_2021',\n    'media_player.plex_plex_for_samsung_tv_2021_2',\n    'media_player.master_tv'\n  ];\n}\n\n// Build HA-compatible media_content_id and media_content_type for Plex\nif (parsed.action === 'play' && parsed.title) {\n  const libraryMap = {\n    'movies': 'Movies',\n    'tv': 'TV Shows',\n    'p90x': 'P90X',\n    'youtube': 'YouTube'\n  };\n  const libraryName = libraryMap[parsed.library] || 'Movies';\n\n  // HA Plex media_content_type: movie, EPISODE, video\n  const contentTypeMap = {\n    'movies': 'movie',\n    'tv': 'EPISODE',\n    'p90x': 'video',\n    'youtube': 'video'\n  };\n  parsed.ha_content_type = contentTypeMap[parsed.library] || 'movie';\n\n  let contentId;\n  if (parsed.library === 'tv') {\n    contentId = {\n      'library_name': libraryName,\n      'show_name': parsed.title\n    };\n    if (parsed.season) contentId['season_number'] = parsed.season;\n    if (parsed.episode) contentId['episode_number'] = parsed.episode;\n  } else {\n    contentId = {\n      'library_name': libraryName,\n      'title': parsed.title\n    };\n  }\n  parsed.ha_content_id = JSON.stringify(contentId);\n}\n\nreturn [{\n  json: {\n    ...parsed,\n    userText,\n    conversationId\n  }\n}];"
+      },
+      "position": [
+        960,
+        -96
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "plex-switch",
+      "name": "Route by Action",
+      "parameters": {
+        "options": {
+          "fallbackOutput": "extra"
+        },
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "play"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "play",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "pause"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "pause",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "resume"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "resume",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "stop"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "stop",
+              "renameOutput": true
+            }
+          ]
+        }
+      },
+      "position": [
+        1200,
+        -96
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "plex-ha-play",
+      "name": "HA: Play Media",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify({ entity_id: $json.entity_id, media_content_id: $json.ha_content_id, media_content_type: $json.ha_content_type || 'movie' }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://homeassistant:8123/api/services/media_player/play_media"
+      },
+      "position": [
+        1504,
+        -400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "plex-ha-pause",
+      "name": "HA: Pause Media",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify({ entity_id: $json.entity_id }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://homeassistant:8123/api/services/media_player/media_pause"
+      },
+      "position": [
+        1504,
+        -208
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "plex-ha-resume",
+      "name": "HA: Resume Media",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify({ entity_id: $json.entity_id }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://homeassistant:8123/api/services/media_player/media_play"
+      },
+      "position": [
+        1504,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "plex-ha-stop",
+      "name": "HA: Stop Media",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify({ entity_id: $json.entity_id }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://homeassistant:8123/api/services/media_player/media_stop"
+      },
+      "position": [
+        1504,
+        208
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "plex-success",
+      "name": "Build Success Response",
+      "parameters": {
+        "jsCode": "const haResponse = $input.first().json;\nconst parsed = $('Parse Command').first().json;\n\nconst haFailed = haResponse.error || haResponse.statusCode >= 400;\nconst isAll = parsed.room === 'all';\n\nif (haFailed) {\n  // Detect Plex timeout - playback likely started but TV was slow to respond\n  const errorMsg = haResponse.error?.message || haResponse.error?.stack || '';\n  const isTimeout = errorMsg.includes('ReadTimeout') || errorMsg.includes('timed out') || errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT');\n\n  if (isTimeout && parsed.action === 'play') {\n    const where = isAll ? 'on all TVs' : `in the ${parsed.room}`;\n    return [{\n      json: {\n        success: true,\n        speech: `Playing ${parsed.title} ${where}. Playback should start shortly.`,\n        action: parsed.action,\n        title: parsed.title,\n        room: parsed.room,\n        entity_id: parsed.entity_id,\n        conversation_id: parsed.conversationId,\n        note: 'Plex timed out but playback likely started'\n      }\n    }];\n  }\n\n  const errorDetail = haResponse.message || haResponse.error || 'Unknown HA error';\n  const target = isAll ? 'all TVs' : `the ${parsed.room} TV`;\n  return [{\n    json: {\n      success: false,\n      speech: `Sorry, I could not ${parsed.action} on ${target}. Home Assistant returned an error.`,\n      action: parsed.action,\n      room: parsed.room,\n      error: errorDetail,\n      conversation_id: parsed.conversationId\n    }\n  }];\n}\n\nlet speech = '';\nswitch (parsed.action) {\n  case 'play':\n    speech = isAll\n      ? `Now playing ${parsed.title} on all TVs.`\n      : `Now playing ${parsed.title}${parsed.room ? ' in the ' + parsed.room : ''}.`;\n    break;\n  case 'pause':\n    speech = isAll ? 'Paused all TVs.' : `Paused the ${parsed.room} TV.`;\n    break;\n  case 'resume':\n    speech = isAll ? 'Resumed playback on all TVs.' : `Resumed playback on the ${parsed.room} TV.`;\n    break;\n  case 'stop':\n    speech = isAll ? 'Stopped all TVs.' : `Stopped the ${parsed.room} TV.`;\n    break;\n}\n\nreturn [{\n  json: {\n    success: true,\n    speech,\n    action: parsed.action,\n    title: parsed.title,\n    room: parsed.room,\n    entity_id: parsed.entity_id,\n    conversation_id: parsed.conversationId\n  }\n}];"
+      },
+      "position": [
+        1808,
+        -96
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "plex-error",
+      "name": "Build Error Response",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nconst errorMessage = input.error || 'Sorry, I did not understand that command. Try saying something like \"play The Matrix in the living room\" or \"pause the boys room TV\".';\n\nreturn [{\n  json: {\n    success: false,\n    speech: errorMessage,\n    action: input.action || 'error',\n    conversation_id: input.conversationId || input.conversation_id || ''\n  }\n}];"
+      },
+      "position": [
+        1808,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "plex-respond",
+      "name": "Send Response",
+      "parameters": {
+        "options": {}
+      },
+      "position": [
+        2112,
+        0
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

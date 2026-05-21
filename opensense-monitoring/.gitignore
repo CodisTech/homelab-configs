@@ -1,0 +1,4 @@
+# Secrets — never commit
+config_alertmanager/secrets/
+config_pve_exporter/pve.yml
+*.bak.*

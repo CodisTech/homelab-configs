@@ -1,0 +1,793 @@
+{
+  "active": false,
+  "connections": {
+    "Code - Cancelled": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Code - Created": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Code - Updated": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Personal Canceled Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Cancelled",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Personal Change Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Updated",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Personal Created Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Created",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - UMICH Canceled Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Cancelled",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - UMICH Change Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Updated",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - UMICH Created Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Created",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - GWU Canceled Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Cancelled",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - GWU Change Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Updated",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - GWU Created Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Created",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - NAVY Canceled Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Cancelled",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - NAVY Change Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Updated",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - NAVY Created Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Created",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Personal Canceled Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Cancelled",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Personal Change Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Updated",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Personal Created Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code - Created",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "OCsfS_dy3I2B72qO0MVLq",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Calendar Change Detection",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "iC6WtTBQOVlVkhGC",
+          "name": "Family Calendar Digest"
+        }
+      },
+      "id": "32175beb-f769-43e6-af35-3a655ae56448",
+      "name": "Send a text message",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": "-5140130059",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        848,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "e8e31770-9812-4117-8882-49068561921a"
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "f264f617-c629-4574-8d0b-cf8868dc87b3",
+      "name": "Y - Personal Change Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventUpdated"
+      },
+      "position": [
+        -704,
+        -16
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "16155278-59d3-4669-b9e9-e21219ad4879",
+      "name": "Y - GWU Change Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "john.codis@gwmail.gwu.edu",
+          "mode": "list",
+          "value": "john.codis@gwmail.gwu.edu"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventUpdated"
+      },
+      "position": [
+        -672,
+        176
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "c0158d37-3718-4536-a24c-4bf604094903",
+      "name": "Y - NAVY Change Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Navy",
+          "mode": "list",
+          "value": "kou9jkankc0f09rrt3v8k7g66s@group.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventUpdated"
+      },
+      "position": [
+        -640,
+        352
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "fd34d304-94b6-4cee-8afb-e33b8ce94aaf",
+      "name": "T - Personal Change Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventUpdated"
+      },
+      "position": [
+        -688,
+        -176
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "07636b2f-e11f-4e02-8e94-f79d64da85ee",
+      "name": "T - UMICH Change Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Tamta Lilly Stone Calendar (Canvas)",
+          "mode": "list",
+          "value": "k54kdr8r17632o7mhebt59u9cij53v62@import.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventUpdated"
+      },
+      "position": [
+        -672,
+        -336
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "1624365a-37e1-4818-a37c-8f9c2514dc95",
+      "name": "Y - Personal Created Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCreated"
+      },
+      "position": [
+        -64,
+        -928
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "27fe71cd-80bc-4ac1-8cd1-74e0459ae6c7",
+      "name": "Y - GWU Created Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "john.codis@gwmail.gwu.edu",
+          "mode": "list",
+          "value": "john.codis@gwmail.gwu.edu"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCreated"
+      },
+      "position": [
+        -160,
+        -720
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "589229f2-63d3-4b83-9ae4-4c8afbfc0ce3",
+      "name": "Y - NAVY Created Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Navy",
+          "mode": "list",
+          "value": "kou9jkankc0f09rrt3v8k7g66s@group.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCreated"
+      },
+      "position": [
+        -192,
+        -544
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "c713dff4-f0ec-4545-9f88-c21bad74249a",
+      "name": "T - UMICH Created Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Tamta Lilly Stone Calendar (Canvas)",
+          "mode": "list",
+          "value": "k54kdr8r17632o7mhebt59u9cij53v62@import.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCreated"
+      },
+      "position": [
+        80,
+        -1312
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cbaba5a4-fac6-4055-afcb-df35f5fe99ef",
+      "name": "T - Personal Created Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCreated"
+      },
+      "position": [
+        0,
+        -1120
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "e0864116-5221-4d33-b4e6-a1378d640bb4",
+      "name": "T - UMICH Canceled Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Tamta Lilly Stone Calendar (Canvas)",
+          "mode": "list",
+          "value": "k54kdr8r17632o7mhebt59u9cij53v62@import.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCancelled"
+      },
+      "position": [
+        -544,
+        624
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "38ff0948-235b-41e8-aee7-c68b495cdade",
+      "name": "T - Personal Canceled Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCancelled"
+      },
+      "position": [
+        -624,
+        800
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "e723f4e6-7853-4491-86ea-2199d050b98a",
+      "name": "Y - Personal Canceled Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCancelled"
+      },
+      "position": [
+        -688,
+        992
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "ef369e72-c9f0-45ee-ba6e-5f8755880f94",
+      "name": "Y - GWU Canceled Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "john.codis@gwmail.gwu.edu",
+          "mode": "list",
+          "value": "john.codis@gwmail.gwu.edu"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCancelled"
+      },
+      "position": [
+        -608,
+        1200
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "00b98261-f2e8-4edb-a9ad-dfe729d1ee9e",
+      "name": "Y - NAVY Canceled Trigger",
+      "parameters": {
+        "calendarId": {
+          "__rl": true,
+          "cachedResultName": "Navy",
+          "mode": "list",
+          "value": "kou9jkankc0f09rrt3v8k7g66s@group.calendar.google.com"
+        },
+        "options": {},
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "eventCancelled"
+      },
+      "position": [
+        -544,
+        1376
+      ],
+      "type": "n8n-nodes-base.googleCalendarTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "bf6c80ca-e9b5-42a3-b004-1e389f9e5b50",
+      "name": "Code - Created",
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst summary = event.summary || '(No title)';\nlet timeStr = 'All day';\n\nif (event.start?.dateTime) {\n  const start = new Date(event.start.dateTime);\n  timeStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Detroit' }) + ' at ' + start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit' });\n}\n\n// Identify which calendar\nconst email = event.organizer?.email || event.creator?.email || '';\nlet calendarName = '\ud83d\udc68 Yianni';  // Default to Yianni\nif (email.includes('tammylillystone')) calendarName = '\ud83d\udc69 Tamta';\nif (email.includes('gwmail.gwu.edu')) calendarName = '\ud83c\udf93 Yianni (GWU)';\nif (email.includes('k54kdr8r17632o7mhebt59u9cij53v62')) calendarName = '\ud83c\udf93 Tamta (UMich)';\n\nconst message = `\u2795 New Event\\n\\n${summary}\\n\ud83d\udd50 ${timeStr}\\n${calendarName}\\n\\n\ud83c\udfe0 Codis Family Calendar`;\n\nreturn [{ json: { message } }];"
+      },
+      "position": [
+        416,
+        -176
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "0b8e1a08-ddc4-44df-9cb4-486875bba385",
+      "name": "Code - Updated",
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst summary = event.summary || '(No title)';\nlet timeStr = 'All day';\n\nif (event.start?.dateTime) {\n  const start = new Date(event.start.dateTime);\n  timeStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Detroit' }) + ' at ' + start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit' });\n}\n\n// Identify which calendar\nconst email = event.organizer?.email || event.creator?.email || '';\nlet calendarName = '\ud83d\udc68 Yianni';  // Default to Yianni\nif (email.includes('tammylillystone')) calendarName = '\ud83d\udc69 Tamta';\nif (email.includes('gwmail.gwu.edu')) calendarName = '\ud83c\udf93 Yianni (GWU)';\nif (email.includes('k54kdr8r17632o7mhebt59u9cij53v62')) calendarName = '\ud83c\udf93 Tamta (UMich)';\n\nconst message = `\u270f\ufe0f Event Updated\\n\\n${summary}\\n\ud83d\udd50 ${timeStr}\\n${calendarName}\\n\\n\ud83c\udfe0 Codis Family Calendar`;\n\nreturn [{ json: { message } }];"
+      },
+      "position": [
+        416,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "946e2062-4a0f-432a-b804-40bdce268adc",
+      "name": "Code - Cancelled",
+      "parameters": {
+        "jsCode": "const event = $input.first().json;\nconst summary = event.summary || '(No title)';\nlet timeStr = 'All day';\n\nif (event.start?.dateTime) {\n  const start = new Date(event.start.dateTime);\n  timeStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Detroit' }) + ' at ' + start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit' });\n}\n\n// Identify which calendar\nconst email = event.organizer?.email || event.creator?.email || '';\nlet calendarName = '\ud83d\udc68 Yianni';  // Default to Yianni\nif (email.includes('tammylillystone')) calendarName = '\ud83d\udc69 Tamta';\nif (email.includes('gwmail.gwu.edu')) calendarName = '\ud83c\udf93 Yianni (GWU)';\nif (email.includes('k54kdr8r17632o7mhebt59u9cij53v62')) calendarName = '\ud83c\udf93 Tamta (UMich)';\n\nconst message = `\u274c Event Cancelled\\n\\n${summary}\\n\ud83d\udd50 ${timeStr}\\n${calendarName}\\n\\n\ud83c\udfe0 Codis Family Calendar`;\n\nreturn [{ json: { message } }];"
+      },
+      "position": [
+        400,
+        224
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

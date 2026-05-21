@@ -1,0 +1,11 @@
+[Unit]
+Description=Mirror n8n workflows from live to homelab-configs Gitea repo
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/n8n-export/env
+Environment=HOMELAB_CONFIGS_REPO=%h/work/repos/homelab-configs
+ExecStart=/usr/bin/python3 %h/work/repos/homelab-configs/scripts/n8n-workflow-export.py
+StandardOutput=journal
+StandardError=journal

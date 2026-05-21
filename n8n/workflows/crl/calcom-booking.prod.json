@@ -1,0 +1,534 @@
+[
+  {
+    "updatedAt": "2026-02-21T01:21:17.558Z",
+    "createdAt": "2026-02-20T18:22:18.410Z",
+    "id": "VMv0EOCNmDIbUvcf",
+    "name": "CRL: Cal.com Booking \u2192 Lead Capture",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "webhook-trigger",
+        "name": "Cal.com Booking Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          200
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "calcom-x7kP9mR3vL2nQ8wF",
+          "responseMode": "responseNode",
+          "options": {
+            "rawBody": true
+          }
+        },
+        "webhookId": "calcom-booking-webhook",
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "verify-signature",
+        "name": "Verify Signature",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          200,
+          200
+        ],
+        "parameters": {
+          "jsCode": "// Cal.com Webhook HMAC-SHA256 Signature Verification\nconst crypto = require('crypto');\n\nconst SIGNING_SECRET = '__CALCOM_WEBHOOK_SECRET__';\n\nconst signature = $input.first().json.headers['x-cal-signature-256'];\n\n// Get raw body from binary data or stringify the body\nlet rawBody;\nif ($input.first().binary && $input.first().binary.data && $input.first().binary.data.data) {\n  rawBody = Buffer.from($input.first().binary.data.data, 'base64').toString('utf8');\n} else {\n  rawBody = JSON.stringify($input.first().json.body);\n}\n\nif (!signature) {\n  return [{ json: { signatureValid: false, error: 'Missing X-Cal-Signature-256 header' } }];\n}\n\nif (!rawBody) {\n  return [{ json: { signatureValid: false, error: 'Missing request body' } }];\n}\n\n// Compute expected HMAC-SHA256 signature\nconst expectedSignature = crypto\n  .createHmac('sha256', SIGNING_SECRET)\n  .update(rawBody)\n  .digest('hex');\n\n// Compare signatures\nif (signature === expectedSignature) {\n  return [{ json: { ...$input.first().json, signatureValid: true } }];\n} else {\n  return [{ json: { signatureValid: false, error: 'Signature mismatch' } }];\n}"
+        }
+      },
+      {
+        "id": "check-signature",
+        "name": "Signature Valid?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          400,
+          200
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "loose"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "sig-check",
+                "leftValue": "={{ $json.signatureValid }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "reject-request",
+        "name": "Reject Invalid Request",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          600,
+          350
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ success: false, error: 'Unauthorized', message: $json.error || 'Invalid webhook signature' }) }}",
+          "options": {
+            "responseCode": 401
+          }
+        }
+      },
+      {
+        "id": "extract-data",
+        "name": "Extract Booking Data",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          600,
+          200
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "bookerName",
+                "name": "bookerName",
+                "value": "={{ $json.body.payload.attendees && $json.body.payload.attendees[0] ? $json.body.payload.attendees[0].name : '' }}",
+                "type": "string"
+              },
+              {
+                "id": "bookerEmail",
+                "name": "bookerEmail",
+                "value": "={{ $json.body.payload.attendees && $json.body.payload.attendees[0] ? $json.body.payload.attendees[0].email : '' }}",
+                "type": "string"
+              },
+              {
+                "id": "bookingTime",
+                "name": "bookingTime",
+                "value": "={{ $json.body.payload.startTime }}",
+                "type": "string"
+              },
+              {
+                "id": "bookingDate",
+                "name": "bookingDate",
+                "value": "={{ $json.body.payload.startTime ? $json.body.payload.startTime.split('T')[0] : new Date().toISOString().split('T')[0] }}",
+                "type": "string"
+              },
+              {
+                "id": "bookingTimeFormatted",
+                "name": "bookingTimeFormatted",
+                "value": "={{ $json.body.payload.startTime ? new Date($json.body.payload.startTime).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) : 'TBD' }}",
+                "type": "string"
+              },
+              {
+                "id": "eventTitle",
+                "name": "eventTitle",
+                "value": "={{ $json.body.payload.title || '15-Minute Discovery Call' }}",
+                "type": "string"
+              },
+              {
+                "id": "triggerEvent",
+                "name": "triggerEvent",
+                "value": "={{ $json.body.triggerEvent || 'BOOKING_CREATED' }}",
+                "type": "string"
+              },
+              {
+                "id": "today",
+                "name": "today",
+                "value": "={{ new Date().toISOString().split('T')[0] }}",
+                "type": "string"
+              },
+              {
+                "id": "notionStatus",
+                "name": "notionStatus",
+                "value": "={{ ((({\"I'm interested in your security services\": \"prospect\", \"I'm a vendor or partner\": \"vendor_partner\", \"I'm a recruiter\": \"recruiter\", \"Something else\": \"other\", \"prospect\": \"prospect\", \"vendor_partner\": \"vendor_partner\", \"recruiter\": \"recruiter\", \"other\": \"other\"})[($json.body.payload.responses && ($json.body.payload.responses.lead_type?.value || $json.body.payload.responses['Lead Type']?.value)) || ($json.body.payload.userFieldsResponses && $json.body.payload.userFieldsResponses.find(r => (r.label === 'Lead Type' || r.label === 'lead_type'))?.value)] || 'prospect') !== 'prospect') ? 'Disqualified' : ($json.body.triggerEvent === 'BOOKING_CANCELLED' ? 'Cancelled' : $json.body.triggerEvent === 'BOOKING_RESCHEDULED' ? 'Rescheduled' : 'Discovery Scheduled') }}",
+                "type": "string"
+              },
+              {
+                "id": "telegramEmoji",
+                "name": "telegramEmoji",
+                "value": "={{ $json.body.triggerEvent === 'BOOKING_CANCELLED' ? '\u274c' : $json.body.triggerEvent === 'BOOKING_RESCHEDULED' ? '\ud83d\udd04' : '\ud83d\udcc5' }}",
+                "type": "string"
+              },
+              {
+                "id": "telegramAction",
+                "name": "telegramAction",
+                "value": "={{ $json.body.triggerEvent === 'BOOKING_CANCELLED' ? 'CANCELLED' : $json.body.triggerEvent === 'BOOKING_RESCHEDULED' ? 'RESCHEDULED' : 'BOOKED' }}",
+                "type": "string"
+              },
+              {
+                "id": "4afcf57a-f84e-4bb4-81c1-e782a2349dcd",
+                "name": "leadType",
+                "value": "={{ ({\"I'm interested in your security services\": \"prospect\", \"I'm a vendor or partner\": \"vendor_partner\", \"I'm a recruiter\": \"recruiter\", \"Something else\": \"other\", \"prospect\": \"prospect\", \"vendor_partner\": \"vendor_partner\", \"recruiter\": \"recruiter\", \"other\": \"other\"})[($json.body.payload.responses && ($json.body.payload.responses.lead_type?.value || $json.body.payload.responses['Lead Type']?.value)) || ($json.body.payload.userFieldsResponses && $json.body.payload.userFieldsResponses.find(r => (r.label === 'Lead Type' || r.label === 'lead_type'))?.value)] || 'prospect' }}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "query-notion",
+        "name": "Find Existing Lead",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          800,
+          200
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.notion.com/v1/databases/90720d68ecdf4be78ff76feddd9eff58/query",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ filter: { property: 'Contact Email', email: { equals: $json.bookerEmail } }, page_size: 1 }) }}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "z06TNV1vaM1TZEVd",
+            "name": "CyberReadyLabs Notion"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "check-exists",
+        "name": "Lead Exists?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1000,
+          200
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "check-results",
+                "leftValue": "={{ $json.results.length }}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "gt"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "update-notion",
+        "name": "Update Existing Lead",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1200,
+          100
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://api.notion.com/v1/pages/{{ $('Find Existing Lead').item.json.results[0].id }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ properties: { 'Status': { select: { name: $('Extract Booking Data').item.json.notionStatus } }, 'Lead Type': { select: { name: $('Extract Booking Data').item.json.leadType } }, 'Start Date': { date: { start: $('Extract Booking Data').item.json.bookingDate } } } }) }}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "z06TNV1vaM1TZEVd",
+            "name": "CyberReadyLabs Notion"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "create-notion",
+        "name": "Create New Lead",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1200,
+          300
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.notion.com/v1/pages",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "notionApi",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Notion-Version",
+                "value": "2022-06-28"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $('Extract Booking Data').item.json.bookerName } }] }, 'Contact Email': { email: $('Extract Booking Data').item.json.bookerEmail }, 'Primary Contact': { rich_text: [{ text: { content: $('Extract Booking Data').item.json.bookerName } }] }, 'Source': { select: { name: 'Cal.com Booking' } }, 'Status': { select: { name: $('Extract Booking Data').item.json.notionStatus } }, 'Lead Type': { select: { name: $('Extract Booking Data').item.json.leadType } }, 'Start Date': { date: { start: $('Extract Booking Data').item.json.bookingDate } } }, children: [ { object: 'block', type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: 'Discovery Call Booking' } }] } }, { object: 'block', type: 'callout', callout: { rich_text: [{ type: 'text', text: { content: $('Extract Booking Data').item.json.eventTitle + ' scheduled for ' + $('Extract Booking Data').item.json.bookingTimeFormatted } }], icon: { emoji: '\ud83d\udcc5' } } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Booking Details' } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Name: ' + $('Extract Booking Data').item.json.bookerName } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Email: ' + $('Extract Booking Data').item.json.bookerEmail } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Event: ' + $('Extract Booking Data').item.json.eventTitle } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Scheduled: ' + $('Extract Booking Data').item.json.bookingTimeFormatted } }] } }, { object: 'block', type: 'divider', divider: {} }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: 'Booked on: ' + $('Extract Booking Data').item.json.today } }] } } ] }) }}",
+          "options": {}
+        },
+        "credentials": {
+          "notionApi": {
+            "id": "z06TNV1vaM1TZEVd",
+            "name": "CyberReadyLabs Notion"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "merge-results",
+        "name": "Merge Results",
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.1,
+        "position": [
+          1400,
+          200
+        ],
+        "parameters": {
+          "mode": "append"
+        }
+      },
+      {
+        "id": "send-telegram",
+        "name": "Notify Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          1600,
+          200
+        ],
+        "parameters": {
+          "operation": "sendMessage",
+          "chatId": "1290054454",
+          "text": "={{ $('Extract Booking Data').item.json.leadType !== 'prospect' ? '[lead-type filtered] ' + $('Extract Booking Data').item.json.leadType + '\\n\\n' : '' }}{{ $('Extract Booking Data').item.json.telegramEmoji }} DISCOVERY CALL {{ $('Extract Booking Data').item.json.telegramAction }}\n\nName: {{ $('Extract Booking Data').item.json.bookerName }}\nEmail: {{ $('Extract Booking Data').item.json.bookerEmail }}\nEvent: {{ $('Extract Booking Data').item.json.eventTitle }}\nScheduled: {{ $('Extract Booking Data').item.json.bookingTimeFormatted }}\n\n\u2192 Check Notion for details",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "telegramApi": {
+            "id": "LTYb7jYlLEFdAZFv",
+            "name": "CyberReadyLabs Bot"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "success-response",
+        "name": "Send Success Response",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1800,
+          200
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ success: true, message: 'Booking processed' }) }}",
+          "options": {
+            "responseCode": 200
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Cal.com Booking Webhook": {
+        "main": [
+          [
+            {
+              "node": "Verify Signature",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Verify Signature": {
+        "main": [
+          [
+            {
+              "node": "Signature Valid?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Signature Valid?": {
+        "main": [
+          [
+            {
+              "node": "Extract Booking Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Reject Invalid Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Booking Data": {
+        "main": [
+          [
+            {
+              "node": "Find Existing Lead",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Existing Lead": {
+        "main": [
+          [
+            {
+              "node": "Lead Exists?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Lead Exists?": {
+        "main": [
+          [
+            {
+              "node": "Update Existing Lead",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Create New Lead",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Existing Lead": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create New Lead": {
+        "main": [
+          [
+            {
+              "node": "Merge Results",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Merge Results": {
+        "main": [
+          [
+            {
+              "node": "Notify Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Notify Telegram": {
+        "main": [
+          [
+            {
+              "node": "Send Success Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "callerPolicy": "workflowsFromSameOwner",
+      "availableInMCP": false
+    },
+    "staticData": null,
+    "meta": null,
+    "pinData": null,
+    "versionId": "b63d02a5-1f0c-4ac1-9c81-fb7e81f6e0d1",
+    "activeVersionId": "b63d02a5-1f0c-4ac1-9c81-fb7e81f6e0d1",
+    "versionCounter": 63,
+    "triggerCount": 1,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-02-20T18:22:18.411Z",
+        "createdAt": "2026-02-20T18:22:18.411Z",
+        "role": "workflow:owner",
+        "workflowId": "VMv0EOCNmDIbUvcf",
+        "projectId": "JzKJwxMIj1pIXtjp",
+        "project": {
+          "updatedAt": "2026-02-02T16:03:55.467Z",
+          "createdAt": "2026-01-26T13:52:05.657Z",
+          "id": "JzKJwxMIj1pIXtjp",
+          "name": "John C <john@example.home>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "creatorId": "ecafb9e9-3fd5-4edf-a3bf-26f322e67f39"
+        }
+      }
+    ]
+  }
+]

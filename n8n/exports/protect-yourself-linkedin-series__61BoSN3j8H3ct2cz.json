@@ -1,0 +1,653 @@
+{
+  "active": true,
+  "connections": {
+    "Approved?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Move to Published",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Rejection",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Determine Next Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Series Complete?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch Post Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fetch Post Image",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch Post Image": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Image to Telegram",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get Post Tracker": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Determine Next Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Move Image to Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Update Tracker",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Move to Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Move Image to Published",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Approved?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prepare Telegram Message": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Approval Request",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Sun/Tue/Thu 8PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get Post Tracker",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Send Image to Telegram": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prepare Telegram Message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Series Complete?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Completion Notice",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Fetch Post Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update Tracker": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Success",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait for Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Callback",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "61BoSN3j8H3ct2cz",
+  "isArchived": false,
+  "meta": null,
+  "name": "Protect Yourself \u2014 LinkedIn Series",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Schedule: Sun/Tue/Thu 8PM",
+      "notes": "Triggers Monday, Wednesday, Friday at 8:00 PM (server time - set timezone in n8n settings)",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 20 * * 0,2,4",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        300
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "get-tracker",
+      "name": "Get Post Tracker",
+      "notes": "Gets current post number from tracker file. Returns 0 if file doesn't exist.",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/protect_yourself/next_post.txt"
+      },
+      "position": [
+        220,
+        300
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "determine-post",
+      "name": "Determine Next Post",
+      "notes": "Calculates which post to send based on tracker file",
+      "parameters": {
+        "jsCode": "// Get current post number from tracker (0 = launch, 1-20 = day01-day20)\nlet postNumber = 0;\n\ntry {\n  const trackerContent = $input.first().json.data || $input.first().json.body || '';\n  postNumber = parseInt(trackerContent.toString().trim(), 10);\n  if (isNaN(postNumber)) postNumber = 0;\n} catch (e) {\n  postNumber = 0;\n}\n\n// Check if series is complete\nif (postNumber > 20) {\n  return [{\n    seriesComplete: true,\n    postNumber: postNumber,\n    message: '\ud83c\udf89 The Protect Yourself series is complete! All 21 posts have been published.'\n  }];\n}\n\n// Determine file names\nlet postFile, imageFile, dayLabel;\n\nif (postNumber === 0) {\n  postFile = 'launch.md';\n  imageFile = 'protect-yourself-launch.png';\n  dayLabel = 'Launch';\n} else {\n  const dayNum = postNumber.toString().padStart(2, '0');\n  postFile = `day${dayNum}.md`;\n  imageFile = `protect-yourself-day${dayNum}.png`;\n  dayLabel = `Day ${postNumber} of 20`;\n}\n\nconst basePath = '/Personal/LinkedIn/protect_yourself';\nconst webdavBase = 'https://nextcloud.local.example.home/remote.php/webdav';\n\nreturn [{\n  seriesComplete: false,\n  postNumber: postNumber,\n  dayLabel: dayLabel,\n  postFile: postFile,\n  imageFile: imageFile,\n  postPath: `${basePath}/posts/${postFile}`,\n  imagePath: `${basePath}/images/${imageFile}`,\n  postUrl: `${webdavBase}${basePath}/posts/${postFile}`,\n  imageUrl: `${webdavBase}${basePath}/images/${imageFile}`,\n  publishedPath: `${basePath}/published/${postFile}`,\n  callbackApprove: `py_approve_${postNumber}`,\n  callbackReject: `py_reject_${postNumber}`\n}];"
+      },
+      "position": [
+        440,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "check-complete",
+      "name": "Series Complete?",
+      "notes": "Routes to completion message if all posts are done",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "series-complete-check",
+              "leftValue": "={{ $json.seriesComplete }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        660,
+        300
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "series-complete-msg",
+      "name": "Send Completion Notice",
+      "notes": "Notifies when the entire series is complete",
+      "parameters": {
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        880,
+        200
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "fetch-post",
+      "name": "Fetch Post Content",
+      "notes": "Downloads the markdown post content",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "url": "={{ $json.postUrl }}"
+      },
+      "position": [
+        880,
+        400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "fetch-image",
+      "name": "Fetch Post Image",
+      "notes": "Downloads the branded image for the post",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "GET",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        },
+        "url": "={{ $('Determine Next Post').item.json.imageUrl }}"
+      },
+      "position": [
+        1100,
+        400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "prepare-message",
+      "name": "Prepare Telegram Message",
+      "notes": "Formats the Telegram approval message",
+      "parameters": {
+        "jsCode": "const postData = $('Determine Next Post').first().json;\nconst postContent = $('Fetch Post Content').first().json.data || $('Fetch Post Content').first().json.body || '';\n\n// Format the message\nconst message = `\ud83d\udee1\ufe0f PROTECT YOURSELF \u2014 ${postData.dayLabel}\n\n${postContent.trim()}\n\n---\n\ud83d\udcce Image attached above\n\ud83d\udcc5 Post #${postData.postNumber} ready for approval\n\nApprove to save to Published folder.`;\n\nreturn [{\n  ...postData,\n  postContent: postContent,\n  telegramMessage: message\n}];"
+      },
+      "position": [
+        1320,
+        400
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-image",
+      "name": "Send Image to Telegram",
+      "notes": "Sends the branded image first",
+      "parameters": {
+        "additionalFields": {},
+        "binaryData": true,
+        "chatId": "1290054454",
+        "operation": "sendPhoto"
+      },
+      "position": [
+        1540,
+        400
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-approval",
+      "name": "Send Approval Request",
+      "notes": "Sends approval request with inline buttons",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "additionalFields": {
+                      "callback_data": "={{ $('Prepare Telegram Message').first().json.callbackApprove }}"
+                    },
+                    "text": "\u2705 Approve"
+                  },
+                  {
+                    "additionalFields": {
+                      "callback_data": "={{ $('Prepare Telegram Message').first().json.callbackReject }}"
+                    },
+                    "text": "\u274c Reject"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "operation": "sendMessage",
+        "replyMarkup": "inlineKeyboard",
+        "resource": "message",
+        "text": "={{ $('Prepare Telegram Message').first().json.telegramMessage }}"
+      },
+      "position": [
+        1760,
+        400
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "telegram-trigger",
+      "name": "Wait for Decision",
+      "notes": "Receives button click callback",
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "position": [
+        1980,
+        300
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "webhookId": "py-approval-response"
+    },
+    {
+      "id": "parse-callback",
+      "name": "Parse Callback",
+      "notes": "Extracts approval decision and post info from callback",
+      "parameters": {
+        "jsCode": "const callbackData = $input.first().json.callback_query?.data || '';\nconst isApproved = callbackData.startsWith('py_approve_');\nconst postNumber = parseInt(callbackData.split('_').pop(), 10);\n\nlet postFile, imageFile, dayLabel;\nif (postNumber === 0) {\n  postFile = 'launch.md';\n  imageFile = 'protect-yourself-launch.png';\n  dayLabel = 'Launch';\n} else {\n  const dayNum = postNumber.toString().padStart(2, '0');\n  postFile = `day${dayNum}.md`;\n  imageFile = `protect-yourself-day${dayNum}.png`;\n  dayLabel = `Day ${postNumber}`;\n}\n\nreturn [{\n  isApproved,\n  postNumber,\n  postFile,\n  imageFile,\n  dayLabel,\n  nextPostNumber: postNumber + 1,\n  callbackData\n}];"
+      },
+      "position": [
+        2200,
+        300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "check-approved",
+      "name": "Approved?",
+      "notes": "Routes based on approval decision",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "approved-check",
+              "leftValue": "={{ $json.isApproved }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        2420,
+        300
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "update-tracker",
+      "name": "Update Tracker",
+      "notes": "Increments the post counter",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "body": "={{ $('Parse Callback').first().json.nextPostNumber.toString() }}",
+        "contentType": "raw",
+        "genericAuthType": "httpBasicAuth",
+        "method": "PUT",
+        "options": {},
+        "rawContentType": "text/plain",
+        "sendBody": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/protect_yourself/next_post.txt"
+      },
+      "position": [
+        2860,
+        200
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-success",
+      "name": "Send Success",
+      "notes": "Confirms successful approval",
+      "parameters": {
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "parseMode": "Markdown",
+        "text": "=\u2705 *{{ $('Parse Callback').first().json.dayLabel }} post approved!*\n\nSaved to Published folder.\nNext post: #{{ $('Parse Callback').first().json.nextPostNumber }}"
+      },
+      "position": [
+        3080,
+        200
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "send-rejection",
+      "name": "Send Rejection",
+      "notes": "Confirms rejection - post will retry",
+      "parameters": {
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "parseMode": "Markdown",
+        "text": "=\u274c *{{ $json.dayLabel }} post rejected.*\n\nIt will be retried on the next scheduled run.\nNo changes made to files or tracker."
+      },
+      "position": [
+        2640,
+        400
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "753cce22-e745-458a-9511-e1f6d669a66a",
+      "name": "Move to Published",
+      "parameters": {
+        "authentication": "accessToken",
+        "operation": "move",
+        "path": "=/Personal/LinkedIn/protect_yourself/posts/{{ $json.postFile }}",
+        "resource": "file",
+        "toPath": "=/Personal/LinkedIn/protect_yourself/published/{{ $json.postFile }}"
+      },
+      "position": [
+        2640,
+        200
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "124eaa14-0d57-431b-aa16-e767562bc553",
+      "name": "Move Image to Published",
+      "parameters": {
+        "authentication": "accessToken",
+        "operation": "move",
+        "path": "=/Personal/LinkedIn/protect_yourself/images/{{ $json.imageFile }}",
+        "resource": "file",
+        "toPath": "=/Personal/LinkedIn/protect_yourself/published/{{ $json.imageFile }}"
+      },
+      "position": [
+        2640,
+        100
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1",
+    "timezone": "America/New_York"
+  },
+  "staticData": {
+    "node:Schedule: Mon/Wed/Fri 8PM": {
+      "recurrenceRules": []
+    },
+    "node:Schedule: Sun/Tue/Thu 8PM": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}

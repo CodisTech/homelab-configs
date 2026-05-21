@@ -1,0 +1,373 @@
+{
+  "active": true,
+  "connections": {
+    "Contact Intake Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Contact Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Contact Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Lead Type Gate",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Lead Type Gate": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Lead in Notion",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Notify Telegram",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Send Confirmation Email",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Create Disqualified Lead in Notion",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Notify Telegram (light)",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "RidzLH7xQ8WHLk9Q",
+  "isArchived": false,
+  "meta": null,
+  "name": "CRL: Contact Form \u2192 Lead Capture",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Contact Intake Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        },
+        "path": "contact-intake",
+        "responseData": "allEntries",
+        "responseMode": "onReceived"
+      },
+      "position": [
+        0,
+        200
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "contact-intake-webhook"
+    },
+    {
+      "id": "extract-data",
+      "name": "Extract Contact Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "firstName",
+              "name": "firstName",
+              "type": "string",
+              "value": "={{ $json.body.data.first_name || $json.body.data.firstName || '' }}"
+            },
+            {
+              "id": "lastName",
+              "name": "lastName",
+              "type": "string",
+              "value": "={{ $json.body.data.last_name || $json.body.data.lastName || '' }}"
+            },
+            {
+              "id": "fullName",
+              "name": "fullName",
+              "type": "string",
+              "value": "={{ ($json.body.data.first_name || $json.body.data.firstName || '') + ' ' + ($json.body.data.last_name || $json.body.data.lastName || '') }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $json.body.data.email || $json.body.data.Email || '' }}"
+            },
+            {
+              "id": "company",
+              "name": "company",
+              "type": "string",
+              "value": "={{ $json.body.data.company_name || $json.body.data.companyName || $json.body.data.company || '' }}"
+            },
+            {
+              "id": "url",
+              "name": "url",
+              "type": "string",
+              "value": "={{ $json.body.data.url || $json.body.data.URL || '' }}"
+            },
+            {
+              "id": "role",
+              "name": "role",
+              "type": "string",
+              "value": "={{ $json.body.data.role || $json.body.data.Role || '' }}"
+            },
+            {
+              "id": "employees",
+              "name": "employees",
+              "type": "string",
+              "value": "={{ $json.body.data.how_many_employees || $json.body.data.employees || '' }}"
+            },
+            {
+              "id": "employeeCount",
+              "name": "employeeCount",
+              "type": "number",
+              "value": "={{ parseInt(String($json.body.data.how_many_employees || $json.body.data.employees || '0').split('-').pop().replace('+', '').replace(/[^0-9]/g, '')) || 10 }}"
+            },
+            {
+              "id": "driver",
+              "name": "driver",
+              "type": "string",
+              "value": "={{ $json.body.data.security_assessment_driver || $json.body.data.driver || '' }}"
+            },
+            {
+              "id": "budget",
+              "name": "budget",
+              "type": "string",
+              "value": "={{ $json.body.data.budget_allocation || $json.body.data.budget || '' }}"
+            },
+            {
+              "id": "serviceType",
+              "name": "serviceType",
+              "type": "string",
+              "value": "={{ $json.body.data.service_type_desired || $json.body.data.serviceType || '' }}"
+            },
+            {
+              "id": "today",
+              "name": "today",
+              "type": "string",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            },
+            {
+              "id": "3f4243d7-a661-48ee-a237-631352d4e3d3",
+              "name": "leadType",
+              "type": "string",
+              "value": "={{ ({\"I'm interested in your security services\": \"prospect\", \"I'm a vendor or partner\": \"vendor_partner\", \"I'm a recruiter\": \"recruiter\", \"Something else\": \"other\", \"prospect\": \"prospect\", \"vendor_partner\": \"vendor_partner\", \"recruiter\": \"recruiter\", \"other\": \"other\"})[$json.body.data.lead_type || $json.body.data.leadType] || 'prospect' }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        240,
+        200
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "create-notion",
+      "name": "Create Lead in Notion",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.company } }] }, 'Contact Email': { email: $json.email }, 'Employee Count': { number: $json.employeeCount }, 'Primary Contact': { rich_text: [{ text: { content: $json.fullName } }] }, 'Source': { select: { name: 'Contact Form' } }, 'Lead Type': { select: { name: 'prospect' } }, 'Status': { select: { name: 'New Lead' } }, 'Start Date': { date: { start: $json.today } }, 'Notes': { rich_text: [{ text: { content: $json.role + ' | ' + $json.driver } }] } }, children: [ { object: 'block', type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: 'Contact Form Submission' } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Contact Information' } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Name: ' + $json.fullName } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Email: ' + $json.email } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Role: ' + $json.role } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Company: ' + $json.company } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Website: ' + $json.url } }] } }, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Qualification Details' } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Employees: ' + $json.employees } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Assessment Driver: ' + $json.driver } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Budget (6 months): ' + $json.budget } }] } }, { object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: 'Service Type: ' + $json.serviceType } }] } }, { object: 'block', type: 'divider', divider: {} }, { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: 'Submitted: ' + $json.today } }] } } ] }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        500,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Notify Telegram",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\ud83d\udd14 NEW CONTACT FORM LEAD\n\nName: {{ $json.fullName }}\nEmail: {{ $json.email }}\nCompany: {{ $json.company }}\nRole: {{ $json.role }}\n\nEmployees: {{ $json.employees }}\nDriver: {{ $json.driver }}\nBudget: {{ $json.budget }}\nService: {{ $json.serviceType }}\n\n\u2192 Check Notion for full details"
+      },
+      "position": [
+        500,
+        200
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "send-email",
+      "name": "Send Confirmation Email",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff'><div style='background:#1a365d;padding:35px 30px;text-align:center'><img src='https://cyberreadylabs.com/assets/img/logo.png' alt='CyberReadyLabs' style='height:45px;margin-bottom:12px'><h1 style='margin:0;color:#fff;font-size:26px;font-weight:700'>CyberReadyLabs</h1><div style='width:60px;height:2px;background:#D4A843;margin:12px auto'></div><p style='margin:0;color:#B0BEC5;font-size:13px'>We Received Your Inquiry</p></div><div style='padding:25px;background:#f8f9fa'><p style='color:#333;margin:0 0 12px'>Hi {{ $json.firstName }},</p><p style='color:#333;margin:0 0 12px'>Thanks for reaching out to CyberReadyLabs. We received your inquiry and would love to learn more about your security needs.</p><p style='text-align:center;margin:20px 0'><a href='https://book.cyberreadylabs.com' style='display:inline-block;background:#D4A843;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:15px'>Schedule a 15-Minute Discovery Call \u2192</a></p><p style='color:#333;margin:0 0 12px;font-size:14px'>In the meantime, take our free security assessment to see where your organization stands.</p><p style='text-align:center;margin:0 0 15px'><a href='https://cyberreadylabs.com/assess' style='display:inline-block;background:#1a365d;color:#fff;padding:10px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px'>Take Our Free Assessment</a></p><p style='color:#333;margin:0 0 12px;font-size:14px'>You can also <a href='https://cyberreadylabs.com/playbook' style='color:#0284c7;font-weight:bold'>download our free Policy-as-Code Guide</a> for practical compliance strategies.</p><p style='color:#333;margin:0;font-size:14px'>Talk soon,<br><strong>John Codis</strong><br>CEO & Founder, CyberReadyLabs</p></div><div style='background:#1a365d;color:#fff;padding:12px;text-align:center;font-size:11px'><p style='margin:0'>&copy; 2026 CyberReadyLabs | cyberreadylabs.com</p></div></div>",
+        "subject": "Your CyberReadyLabs inquiry \u2014 next steps",
+        "toEmail": "={{ $json.email }}"
+      },
+      "position": [
+        500,
+        400
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1
+    },
+    {
+      "id": "a83787de-d64d-4c8f-8f2b-d082c88d5121",
+      "name": "Lead Type Gate",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "add2bf47-eacb-489f-878d-a7ea8f30f3f3",
+              "leftValue": "={{ $json.leadType }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "prospect"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        460,
+        200
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "05387ce8-6e23-4e8d-9703-1bad3584a6d9",
+      "name": "Create Disqualified Lead in Notion",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.company || $json.fullName || $json.email } }] }, 'Contact Email': { email: $json.email }, 'Primary Contact': { rich_text: [{ text: { content: $json.fullName } }] }, 'Source': { select: { name: 'Contact Form' } }, 'Status': { select: { name: 'Disqualified' } }, 'Lead Type': { select: { name: $json.leadType } }, 'Start Date': { date: { start: $json.today } }, 'Notes': { rich_text: [{ text: { content: 'Disqualified at intake. lead_type=' + $json.leadType + ' | role=' + ($json.role || '') + ' | driver=' + ($json.driver || '') } }] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        700,
+        400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "ade46e07-8dfe-4fb8-b612-e3daae3d8c72",
+      "name": "Notify Telegram (light)",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=[lead-type filtered] {{ $json.leadType }}: {{ $json.fullName }} <{{ $json.email }}> @ {{ $json.company }} | role={{ $json.role }}"
+      },
+      "position": [
+        700,
+        560
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

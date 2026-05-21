@@ -1,0 +1,822 @@
+{
+  "active": true,
+  "connections": {
+    "Build Claude Prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Call Claude",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build Play Reply": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Call Claude": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Claude + Prep Search",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Call Voice Control": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Check HA Entity": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Entity Available?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Entity Available?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Entity Ready?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Entity Ready?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "HA: Play Media",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HA: Play Media": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Play Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Handle Results": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Result Router",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Main Router": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Welcome",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Resolve Selection",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Build Claude Prompt",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Call Voice Control",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Claude + Prep Search": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Search Plex",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prep Entity Check": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check HA Entity",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Main Router",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Resolve Selection": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prep Entity Check",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Result Router": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prep Entity Check",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Reply",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Search Plex": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Handle Results",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Process Message",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "T2Vp3GzKndktSIrD",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Plex Telegram Bot",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "uFqBNbtSSB55jpH0",
+          "name": "Telegram Plex"
+        }
+      },
+      "id": "tg-trigger",
+      "name": "Telegram Trigger",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {},
+        "updates": [
+          "message"
+        ]
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "3c271a9c-924e-43d4-964c-5eccf3d84db4"
+    },
+    {
+      "id": "tg-process",
+      "name": "Process Message",
+      "parameters": {
+        "jsCode": "const msg = $input.first().json;\nconst text = (msg.message?.text || '').trim();\nconst chatId = String(msg.message?.chat?.id || '');\n\nconst state = $getWorkflowStaticData('global');\nif (!state.pending_selections) state.pending_selections = {};\n\n// Clean up expired entries (>5 min)\nconst now = Date.now();\nfor (const uid of Object.keys(state.pending_selections)) {\n  if (now - state.pending_selections[uid].timestamp > 5 * 60 * 1000) {\n    delete state.pending_selections[uid];\n  }\n}\n\nif (text === '/start' || text === '/help') {\n  return [{ json: { route: 'welcome', chatId } }];\n}\n\nconst pending = state.pending_selections[chatId];\nif (pending) {\n  const num = parseInt(text, 10);\n  if (!isNaN(num) && num >= 1 && num <= pending.options.length) {\n    const selectionData = {\n      chosen: pending.options[num - 1],\n      room: pending.room,\n      entity_id: pending.entity_id,\n      library: pending.library,\n      season: pending.season || null,\n      episode: pending.episode || null\n    };\n    delete state.pending_selections[chatId];\n    return [{ json: { route: 'selection', chatId, selectionData } }];\n  }\n  if (text === '0' || text.toLowerCase() === 'cancel') {\n    delete state.pending_selections[chatId];\n    return [{ json: { route: 'direct_reply', chatId, speech: 'Selection cancelled.' } }];\n  }\n  const isCommand = /^(play|pause|resume|stop)\\b/i.test(text) || text.startsWith('/');\n  if (!isCommand) {\n    return [{ json: { route: 'direct_reply', chatId, speech: `Please reply with a number between 1 and ${pending.options.length}, or 0 to cancel.` } }];\n  }\n  delete state.pending_selections[chatId];\n}\n\nlet command = text;\nif (command.startsWith('/')) {\n  const spaceIdx = command.indexOf(' ');\n  if (spaceIdx > 0) command = command.substring(1);\n}\n\nif (/^(pause|resume|stop)\\b/i.test(command)) {\n  return [{ json: { route: 'other', text: command, chatId } }];\n}\n\nreturn [{ json: { route: 'play', text: command, chatId } }];"
+      },
+      "position": [
+        240,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "tg-router",
+      "name": "Main Router",
+      "parameters": {
+        "options": {
+          "fallbackOutput": "extra"
+        },
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "welcome"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "welcome",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "selection"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "selection",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "play"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "play",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "other"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "other",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "direct_reply"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "direct_reply",
+              "renameOutput": true
+            }
+          ]
+        }
+      },
+      "position": [
+        480,
+        0
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "uFqBNbtSSB55jpH0",
+          "name": "Telegram Plex"
+        }
+      },
+      "id": "tg-welcome",
+      "name": "Send Welcome",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": "={{ $json.chatId }}",
+        "operation": "sendMessage",
+        "resource": "message",
+        "text": "Welcome to Plex Voice Control!\n\nJust type commands like:\n\n\u25b6\ufe0f play Aladdin in the living room\n\u25b6\ufe0f play the original lion king on master\n\u25b6\ufe0f play the first harry potter in the boys room\n\u23f8 pause the master TV\n\u23f9 stop all TVs\n\nIf multiple matches are found, I will show you a numbered list to pick from.\n\nAvailable rooms: living room, boys room, master, or all TVs"
+      },
+      "position": [
+        720,
+        400
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "tg-resolve",
+      "name": "Resolve Selection",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst sel = input.selectionData;\nconst chatId = input.chatId;\n\nif (!sel || !sel.chosen) {\n  return [{ json: { chatId, speech: 'Sorry, I could not find your selection. Please try again.' } }];\n}\n\nconst chosen = sel.chosen;\nconst libraryMap = { movies: 'Movies', tv: 'TV Shows', p90x: 'P90X', youtube: 'YouTube' };\nconst contentTypeMap = { movies: 'movie', tv: 'EPISODE', p90x: 'video', youtube: 'video' };\nconst libraryName = libraryMap[sel.library] || 'Movies';\nconst haContentType = contentTypeMap[sel.library] || 'movie';\n\nlet contentId;\nif (sel.library === 'tv') {\n  contentId = { library_name: libraryName, show_name: chosen.title };\n  if (sel.season) contentId.season_number = sel.season;\n  if (sel.episode) contentId.episode_number = sel.episode;\n} else {\n  contentId = { library_name: libraryName, title: chosen.title };\n  if (chosen.year) contentId.year = chosen.year;\n}\n\nlet entityId = sel.entity_id;\nif (entityId === 'all') {\n  entityId = [\n    'media_player.plex_plex_for_samsung_tv_2021',\n    'media_player.plex_plex_for_samsung_tv_2021_2',\n    'media_player.master_tv'\n  ];\n}\n\nreturn [{ json: {\n  chatId,\n  entity_id: entityId,\n  ha_content_id: JSON.stringify(contentId),\n  ha_content_type: haContentType,\n  title: chosen.title,\n  year: chosen.year || null,\n  room: sel.room\n} }];"
+      },
+      "position": [
+        720,
+        200
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "tg-build-prompt",
+      "name": "Build Claude Prompt",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst text = input.text;\nconst chatId = input.chatId;\n\nconst systemPrompt = `You are a home media controller for a Plex media system. Parse the user command and return structured JSON.\n\nAVAILABLE ROOMS AND THEIR PLEX PLAYERS:\n- \"living room\" = media_player.plex_plex_for_samsung_tv_2021\n- \"boys room\" or \"boys\" = media_player.plex_plex_for_samsung_tv_2021_2\n- \"master\" or \"master bedroom\" or \"bedroom\" = media_player.master_tv\n- \"all\" or \"all TVs\" or \"everywhere\" = entity_id \"all\", room \"all\"\n\nAVAILABLE PLEX LIBRARIES:\n- movies (default)\n- tv / \"tv shows\"\n- p90x\n- youtube\n\nMOVIE SERIES INTELLIGENCE:\nWhen the user refers to a movie by series position, ordinal, or description rather than exact title, resolve it:\n- \"the first harry potter\" -> title: \"Harry Potter and the Sorcerer's Stone\", year_hint: 2001\n- \"the second harry potter\" -> title: \"Harry Potter and the Chamber of Secrets\", year_hint: 2002\n- \"the last harry potter\" -> title: \"Harry Potter and the Deathly Hallows: Part 2\", year_hint: 2011\n- \"the original lion king\" -> title: \"The Lion King\", year_hint: 1994\n- \"the new lion king\" or \"lion king remake\" -> title: \"The Lion King\", year_hint: 2019\n- \"newest james bond\" or \"latest bond\" -> title: \"No Time to Die\", year_hint: 2021\n- \"first james bond\" -> title: \"Dr. No\", year_hint: 1962\n- \"transformers 2\" -> title: \"Transformers: Revenge of the Fallen\", year_hint: 2009\n- \"iron man 3\" -> title: \"Iron Man 3\", year_hint: 2013\n- \"the batman with robert pattinson\" -> title: \"The Batman\", year_hint: 2022\nIf unsure of exact title, provide your best guess as title and set year_hint to help disambiguate.\nIf the request is straightforward (e.g. \"play Aladdin\"), set year_hint to null.\n\nIMPORTANT: If the user says JUST a franchise name WITHOUT a qualifier (no ordinal like \"first\"/\"second\", no year, no description like \"the original\"/\"the new one\"), pass the franchise name as-is and set year_hint to null. For example:\n- \"Harry Potter\" (no qualifier) -> title: \"Harry Potter\", year_hint: null\n- \"Transformers\" (no qualifier) -> title: \"Transformers\", year_hint: null\n- \"James Bond\" (no qualifier) -> title: \"James Bond\", year_hint: null\nThis lets the user pick from all matches. Only resolve to a specific title when a qualifier is present.\n\nRULES:\n1. If user says \"play [title]\" without a room, set action to \"error\" asking which room.\n2. If user says \"play\" without a title, set action to \"error\".\n3. Default library is \"movies\" if not specified.\n4. For TV shows, extract season/episode if mentioned.\n5. Be flexible with room names.\n6. For pause/resume/stop without a room, set action to \"error\".\n7. \"all\", \"all TVs\", \"everywhere\", \"every room\" map to room \"all\" with entity_id \"all\".\n\nRespond ONLY with valid JSON (no code blocks, no extra text):\n{\n  \"action\": \"play\" | \"pause\" | \"resume\" | \"stop\" | \"error\",\n  \"title\": \"string or null\",\n  \"year_hint\": number or null,\n  \"season\": number or null,\n  \"episode\": number or null,\n  \"library\": \"movies\" | \"tv\" | \"p90x\" | \"youtube\" | null,\n  \"room\": \"living room\" | \"boys room\" | \"master\" | \"all\" | null,\n  \"entity_id\": \"full entity_id, or 'all', or null\",\n  \"error\": \"friendly error message or null\"\n}`;\n\nconst apiBody = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 600,\n  messages: [{ role: 'user', content: text }],\n  system: systemPrompt\n};\n\nreturn [{ json: { apiBody, chatId, text } }];"
+      },
+      "position": [
+        720,
+        -100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "tg-claude",
+      "maxTries": 2,
+      "name": "Call Claude",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify($json.apiBody) }}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        960,
+        -100
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "tg-parse",
+      "name": "Parse Claude + Prep Search",
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst chatId = $('Build Claude Prompt').first().json.chatId;\n\nif (response.error) {\n  return [{ json: { chatId, speech: 'Sorry, I had trouble understanding that. Please try again.', resultType: 'not_found' } }];\n}\n\nlet claudeText = '';\nif (response.content && response.content.length > 0) {\n  claudeText = response.content[0].text.trim();\n}\n\nif (!claudeText) {\n  return [{ json: { chatId, speech: 'Sorry, I did not get a response. Please try again.', resultType: 'not_found' } }];\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(claudeText);\n} catch (e) {\n  const jsonMatch = claudeText.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[1].trim());\n  } else {\n    const objMatch = claudeText.match(/\\{[\\s\\S]*\\}/);\n    if (objMatch) {\n      parsed = JSON.parse(objMatch[0]);\n    } else {\n      return [{ json: { chatId, speech: 'Sorry, I could not process that command.', resultType: 'not_found' } }];\n    }\n  }\n}\n\nif (parsed.action === 'error') {\n  return [{ json: { chatId, speech: parsed.error || 'Sorry, I did not understand. Please try again.', resultType: 'not_found' } }];\n}\n\nif (parsed.action !== 'play') {\n  return [{ json: { chatId, speech: 'Unexpected action. Please try again.', resultType: 'not_found' } }];\n}\n\nlet entityId = parsed.entity_id;\nif (entityId === 'all') {\n  entityId = [\n    'media_player.plex_plex_for_samsung_tv_2021',\n    'media_player.plex_plex_for_samsung_tv_2021_2',\n    'media_player.master_tv'\n  ];\n}\n\nconst searchQuery = encodeURIComponent(parsed.title);\n\nreturn [{ json: {\n  chatId,\n  title: parsed.title,\n  year_hint: parsed.year_hint || null,\n  season: parsed.season || null,\n  episode: parsed.episode || null,\n  library: parsed.library || 'movies',\n  room: parsed.room,\n  entity_id: entityId,\n  searchQuery\n} }];"
+      },
+      "position": [
+        1200,
+        -100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "alwaysOutputData": true,
+      "id": "tg-plex-search",
+      "name": "Search Plex",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "GET",
+        "options": {
+          "timeout": 10000
+        },
+        "url": "=http://10.0.0.50:32400/hubs/search?query={{ $json.searchQuery }}&limit=10&X-Plex-Token=d4C3zj8HsJMG9snEZuja"
+      },
+      "position": [
+        1440,
+        -100
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "tg-handle",
+      "name": "Handle Results",
+      "parameters": {
+        "jsCode": "const plexResponse = $input.first().json;\nconst prev = $('Parse Claude + Prep Search').first().json;\nconst chatId = prev.chatId;\n\nconst hubs = plexResponse?.MediaContainer?.Hub || [];\nconst libraryTypeMap = { movies: 'movie', tv: 'show', p90x: 'movie', youtube: 'movie' };\nconst targetType = libraryTypeMap[prev.library] || 'movie';\n\nlet matches = [];\nfor (const hub of hubs) {\n  if (hub.type === targetType && hub.Metadata) {\n    for (const item of hub.Metadata) {\n      matches.push({\n        title: item.title,\n        year: item.year || null,\n        ratingKey: item.ratingKey\n      });\n    }\n  }\n}\n\nif (prev.year_hint && matches.length > 1) {\n  matches.sort((a, b) => {\n    const aMatch = a.year === prev.year_hint ? 0 : 1;\n    const bMatch = b.year === prev.year_hint ? 0 : 1;\n    return aMatch - bMatch;\n  });\n  if (matches[0].year === prev.year_hint) {\n    matches = [matches[0]];\n  }\n}\n\nif (matches.length === 0) {\n  return [{ json: { chatId, resultType: 'not_found', speech: `I could not find \"${prev.title}\" in your Plex library. Check the title and try again.` } }];\n}\n\nif (matches.length === 1) {\n  const match = matches[0];\n  const libraryMap = { movies: 'Movies', tv: 'TV Shows', p90x: 'P90X', youtube: 'YouTube' };\n  const contentTypeMap = { movies: 'movie', tv: 'EPISODE', p90x: 'video', youtube: 'video' };\n  const libraryName = libraryMap[prev.library] || 'Movies';\n  const haContentType = contentTypeMap[prev.library] || 'movie';\n\n  let contentId;\n  if (prev.library === 'tv') {\n    contentId = { library_name: libraryName, show_name: match.title };\n    if (prev.season) contentId.season_number = prev.season;\n    if (prev.episode) contentId.episode_number = prev.episode;\n  } else {\n    contentId = { library_name: libraryName, title: match.title };\n    if (match.year) contentId.year = match.year;\n  }\n\n  return [{ json: {\n    chatId, resultType: 'play_now',\n    entity_id: prev.entity_id,\n    ha_content_id: JSON.stringify(contentId),\n    ha_content_type: haContentType,\n    title: match.title,\n    year: match.year,\n    room: prev.room\n  } }];\n}\n\nconst options = matches.slice(0, 8);\nconst state = $getWorkflowStaticData('global');\nif (!state.pending_selections) state.pending_selections = {};\nstate.pending_selections[chatId] = {\n  room: prev.room,\n  entity_id: prev.entity_id,\n  library: prev.library,\n  season: prev.season,\n  episode: prev.episode,\n  options,\n  timestamp: Date.now()\n};\n\nlet msg = `I found ${matches.length} matches for \"${prev.title}\". Which one?\\n\\n`;\noptions.forEach((opt, i) => {\n  const yearStr = opt.year ? ` (${opt.year})` : '';\n  msg += `${i + 1}. ${opt.title}${yearStr}\\n`;\n});\nmsg += '\\nReply with a number, or 0 to cancel.';\n\nreturn [{ json: { chatId, resultType: 'options', speech: msg } }];"
+      },
+      "position": [
+        1680,
+        -100
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "tg-result-router",
+      "name": "Result Router",
+      "parameters": {
+        "options": {
+          "fallbackOutput": "extra"
+        },
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.resultType }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "play_now"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "play_now",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.resultType }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "options"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "options",
+              "renameOutput": true
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.resultType }}",
+                    "operator": {
+                      "operation": "equals",
+                      "type": "string"
+                    },
+                    "rightValue": "not_found"
+                  }
+                ],
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                }
+              },
+              "outputKey": "not_found",
+              "renameOutput": true
+            }
+          ]
+        }
+      },
+      "position": [
+        1920,
+        -100
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "tg-ha-play",
+      "name": "HA: Play Media",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "jsonBody": "={{ JSON.stringify({ entity_id: $json.entity_id, media_content_id: $json.ha_content_id, media_content_type: $json.ha_content_type || 'movie' }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://homeassistant:8123/api/services/media_player/play_media"
+      },
+      "position": [
+        2520,
+        -300
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "tg-build-reply",
+      "name": "Build Play Reply",
+      "parameters": {
+        "jsCode": "const haResponse = $input.first().json;\nlet title, room, chatId, year;\n\ntry {\n  const data = $('Resolve Selection').first().json;\n  title = data.title;\n  room = data.room;\n  chatId = data.chatId;\n  year = data.year;\n} catch (e) {\n  try {\n    const data = $('Handle Results').first().json;\n    title = data.title;\n    room = data.room;\n    chatId = data.chatId;\n    year = data.year;\n  } catch (e2) {\n    chatId = $('Process Message').first().json.chatId;\n    title = 'your media';\n    room = 'unknown';\n    year = null;\n  }\n}\n\nconst isAll = room === 'all';\nconst haFailed = haResponse.error || haResponse.statusCode >= 400;\n\nif (haFailed) {\n  const errorMsg = haResponse.error?.message || haResponse.error?.stack || '';\n  const isTimeout = errorMsg.includes('ReadTimeout') || errorMsg.includes('timed out') || errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT');\n  if (isTimeout) {\n    const where = isAll ? 'on all TVs' : `in the ${room}`;\n    return [{ json: { chatId, speech: `Playing ${title}${year ? ' (' + year + ')' : ''} ${where}. Playback should start shortly.` } }];\n  }\n  const target = isAll ? 'all TVs' : `the ${room} TV`;\n  return [{ json: { chatId, speech: `Sorry, I could not play on ${target}. Home Assistant returned an error.` } }];\n}\n\nconst where = isAll ? 'on all TVs' : (room ? `in the ${room}` : '');\nconst yearStr = year ? ` (${year})` : '';\nreturn [{ json: { chatId, speech: `Now playing ${title}${yearStr} ${where}.` } }];"
+      },
+      "position": [
+        2700,
+        -300
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "alwaysOutputData": true,
+      "id": "tg-webhook",
+      "name": "Call Voice Control",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
+        "method": "POST",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "http://localhost:5678/webhook/plex-voice"
+      },
+      "position": [
+        720,
+        -400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "uFqBNbtSSB55jpH0",
+          "name": "Telegram Plex"
+        }
+      },
+      "id": "tg-reply",
+      "name": "Send Reply",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": "={{ $json.chatId || $('Process Message').first().json.chatId }}",
+        "operation": "sendMessage",
+        "resource": "message",
+        "text": "={{ $json.speech || $json.error || 'Sorry, something went wrong. Please try again.' }}"
+      },
+      "position": [
+        2900,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "tg-prep-entity",
+      "name": "Prep Entity Check",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst data = items[0].json;\n\n// Determine which entity to check\nlet checkEntityId;\nlet isAllTVs = false;\n\nif (Array.isArray(data.entity_id)) {\n  // \"all TVs\" mode - pick first entity to check availability\n  checkEntityId = data.entity_id[0];\n  isAllTVs = true;\n} else {\n  checkEntityId = data.entity_id;\n}\n\n// Pass through all original data plus the check entity\nreturn [{ json: {\n  ...data,\n  checkEntityId,\n  isAllTVs\n} }];"
+      },
+      "position": [
+        2040,
+        -200
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "rkJmPEgsx3dac07Y",
+          "name": "Home Assistant API"
+        }
+      },
+      "id": "tg-check-entity",
+      "name": "Check HA Entity",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET",
+        "options": {},
+        "url": "=http://homeassistant:8123/api/states/{{ $json.checkEntityId }}"
+      },
+      "position": [
+        2160,
+        -200
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "tg-entity-avail",
+      "name": "Entity Available?",
+      "parameters": {
+        "jsCode": "const haResponse = $input.first().json;\nconst prev = $('Prep Entity Check').first().json;\n\n// Check if the entity is available\nconst state = haResponse.state;\nconst gotError = haResponse.error || haResponse.statusCode === 404;\nconst isUnavailable = gotError || state === 'unavailable';\n\nif (isUnavailable) {\n  // Build a friendly error message\n  let speech;\n  if (prev.isAllTVs) {\n    speech = \"No Plex clients are available. Please open the Plex app on at least one TV and try again.\";\n  } else {\n    const roomNames = {\n      'media_player.plex_plex_for_samsung_tv_2021': 'living room',\n      'media_player.plex_plex_for_samsung_tv_2021_2': 'boys room',\n      'media_player.master_tv': 'master bedroom'\n    };\n    const roomName = roomNames[prev.checkEntityId] || prev.room || 'selected';\n    speech = `The ${roomName} TV isn't running Plex. Please open the Plex app and try again.`;\n  }\n\n  return [{ json: {\n    chatId: prev.chatId,\n    speech,\n    entityReady: false\n  } }];\n}\n\n// Entity is available - pass through original play data\nreturn [{ json: {\n  ...prev,\n  entityReady: true\n} }];"
+      },
+      "position": [
+        2280,
+        -200
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "tg-entity-ready",
+      "name": "Entity Ready?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "entity-ready-check",
+              "leftValue": "={{ $json.entityReady }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        2400,
+        -200
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "global": {
+      "pending_selections": {}
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,65 @@
+{
+  "active": false,
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "VkmuUWgeRIkD1i0iqZ_HD",
+  "isArchived": true,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "id": "de2a73bf-a74a-4903-9cef-68b3e79947c8",
+      "name": "When clicking \u2018Execute workflow\u2019",
+      "parameters": {},
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "f9138ed2-8233-40fe-ba95-d739603c1bc0",
+      "name": "Send a text message",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "Test from n8n"
+      },
+      "position": [
+        208,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "04b51366-b068-4763-96a7-23f4362ff0a9"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

@@ -1,0 +1,690 @@
+{
+  "active": true,
+  "connections": {
+    "Check Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save to Published",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Rejection Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Source File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Published Posts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Approval Request",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Find Source Document": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Source Files?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Source Files?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Source File",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Notify No Files",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Pending_Review Files": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Find Source Document",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Published Posts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Load Past Posts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Load Past Posts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Generate LinkedIn Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Remove from Pending_Review": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Success Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save to Published": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Remove from Pending_Review",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Mon & Wed 8PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Pending_Review Files",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Send Approval Request": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Wait for Decision",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait for Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check Decision",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "ybfGSTxPGlMGvyGd",
+  "isArchived": false,
+  "meta": null,
+  "name": "LinkedIn Content Transformer v5",
+  "nodes": [
+    {
+      "id": "v5-trigger",
+      "name": "Schedule: Mon & Wed 8PM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 20 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -80,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "v5-list-files",
+      "maxTries": 2,
+      "name": "List Pending_Review Files",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Coursework-Auto/Pending_Review"
+      },
+      "position": [
+        160,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "v5-find-source",
+      "name": "Find Source Document",
+      "parameters": {
+        "jsCode": "const xml = $input.item.json.data;\nconst responsePattern = /<d:response>[\\s\\S]*?<d:href>([^<]+)<\\/d:href>[\\s\\S]*?<\\/d:response>/gi;\nconst files = [];\nlet match;\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const href = decodeURIComponent(match[1]);\n  if (href.match(/\\.(md|docx)$/i)) {\n    const pathMatch = href.match(/\\/remote\\.php\\/webdav\\/(.+)/);\n    if (pathMatch) { files.push('/' + pathMatch[1]); }\n  }\n}\nif (files.length === 0) {\n  return [{ json: { hasFile: false, message: 'No source documents found in Pending_Review' } }];\n}\nconst selectedFile = files[0];\nconst fileName = selectedFile.split('/').pop();\nreturn [{ json: { hasFile: true, selectedFile, fileName, totalFiles: files.length } }];"
+      },
+      "position": [
+        400,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "v5-has-files",
+      "name": "Has Source Files?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-has-file",
+              "leftValue": "={{ $json.hasFile }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        640,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "v5-download",
+      "maxTries": 2,
+      "name": "Download Source File",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav{{ $('Find Source Document').item.json.selectedFile.split('/').map(segment => encodeURIComponent(segment)).join('/') }}"
+      },
+      "position": [
+        912,
+        -144
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "v5-extract",
+      "name": "Extract Content",
+      "parameters": {
+        "jsCode": "const rawContent = $input.item.json.data;\n\n// Check if download returned content\nif (!rawContent) {\n  throw new Error('Download failed - no content returned. File may not exist or credentials may be invalid. Selected file: ' + $('Find Source Document').item.json.selectedFile);\n}\n\nconst selectedFile = $('Find Source Document').item.json.selectedFile;\nconst fileName = $('Find Source Document').item.json.fileName;\nconst content = rawContent.substring(0, 15000);\nconst wasTruncated = rawContent.length > 15000;\n\nreturn [{ json: { content, fileName, selectedFile, wasTruncated, originalLength: rawContent.length } }];"
+      },
+      "position": [
+        1152,
+        -144
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "continueOnFail": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "v5-list-published",
+      "maxTries": 2,
+      "name": "List Published Posts",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Coursework-Auto/Published"
+      },
+      "position": [
+        1392,
+        -144
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "v5-load-past-posts",
+      "name": "Load Past Posts",
+      "parameters": {
+        "jsCode": "const xml = $input.item.json.data || '';\nconst content = $('Extract Content').item.json.content;\nconst fileName = $('Extract Content').item.json.fileName;\nconst selectedFile = $('Extract Content').item.json.selectedFile;\n\n// Parse published file names from WebDAV XML\nconst responsePattern = /<d:response>[\\s\\S]*?<d:href>([^<]+)<\\/d:href>[\\s\\S]*?<\\/d:response>/gi;\nconst publishedFiles = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const href = decodeURIComponent(match[1]);\n  if (href.match(/\\.(txt|md)$/i)) {\n    const name = href.split('/').pop();\n    publishedFiles.push(name);\n  }\n}\n\n// Build a summary of past topics from file names\nlet pastTopics = 'None yet.';\nif (publishedFiles.length > 0) {\n  // Take the last 20 file names as topic hints\n  const recent = publishedFiles.slice(-20);\n  pastTopics = recent.map(f => f.replace(/\\.(txt|md)$/i, '').replace(/_/g, ' ')).join(', ');\n}\n\nreturn [{ json: { content, fileName, selectedFile, pastTopics, publishedCount: publishedFiles.length } }];"
+      },
+      "position": [
+        1632,
+        -144
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "v5-claude",
+      "maxTries": 2,
+      "name": "Generate LinkedIn Post",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: 'You are a cybersecurity expert and professional educator who shares insights on LinkedIn.\\n\\nAnalyze the following educational content and create a concise LinkedIn post with this exact structure:\\n\\n1. TITLE - A bold, attention-grabbing headline\\n2. THESIS - One sentence stating your main argument or insight\\n3. EXAMPLES - 1-2 brief supporting examples or evidence (keep each to one sentence)\\n4. KEY POINTS - 2-3 bullet points using the \\u2022 character as bullets\\n5. QUESTION - End with one thought-provoking question for engagement\\n6. HASHTAGS - 3-5 relevant hashtags on their own line\\n\\nRules:\\n- Total post must be 50-80 words (excluding hashtags)\\n- Use plain text only - NO markdown formatting (no **, no ##)\\n- Use \\u2022 for bullet points\\n- Use line breaks to separate sections\\n- Be direct and punchy, not verbose\\n- IMPORTANT: Avoid repeating topics from previous posts. Previous post topics: ' + $json.pastTopics + '\\n\\nRespond with ONLY the LinkedIn post text. No JSON, no code blocks, no labels like \"TITLE:\" or \"THESIS:\". Just the post content.\\n\\nSource file: ' + $json.fileName + '\\n\\nSource content:\\n' + $json.content }] }) }}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        1872,
+        -144
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "v5-parse-post",
+      "name": "Extract Post",
+      "parameters": {
+        "jsCode": "const response = $input.item.json;\nconst selectedFile = $('Find Source Document').item.json.selectedFile;\nconst fileName = $('Find Source Document').item.json.fileName;\nlet postText = '';\nif (response.content && response.content.length > 0) {\n  postText = response.content[0].text.trim();\n}\nif (!postText) { throw new Error('Claude returned empty response'); }\nconst hashtagMatch = postText.match(/#\\\\w+/g);\nconst hashtags = hashtagMatch || [];\nreturn [{ json: { postText, hashtags, selectedFile, fileName } }];"
+      },
+      "position": [
+        2112,
+        -144
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "v5-send-approval",
+      "name": "Send Approval Request",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        },
+        "chatId": "1290054454",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "additionalFields": {
+                      "url": "={{ $execution.resumeUrl }}?decision=approve"
+                    },
+                    "text": "\u2705 Approve"
+                  },
+                  {
+                    "additionalFields": {
+                      "url": "={{ $execution.resumeUrl }}?decision=reject"
+                    },
+                    "text": "\u274c Reject"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "replyMarkup": "inlineKeyboard",
+        "text": "=\ud83d\udcdd *New LinkedIn Post for Review*\n\nSource: `{{ $json.fileName }}`\n\n---\n{{ $json.postText }}\n---\n\n\u2705 Click Approve to save to Published\n\u274c Click Reject to discard\n\n_Approve:_ {{ $execution.resumeUrl }}/approve\n_Reject:_ {{ $execution.resumeUrl }}/reject"
+      },
+      "position": [
+        2352,
+        -144
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "9155daf5-6014-4c59-85d1-69d4caaa03cf"
+    },
+    {
+      "id": "v5-wait-decision",
+      "name": "Wait for Decision",
+      "parameters": {
+        "options": {},
+        "resume": "webhook"
+      },
+      "position": [
+        2592,
+        -144
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "webhookId": "35be8525-b3ed-44e7-a8fe-f6d9f10c8640"
+    },
+    {
+      "id": "v5-check-decision",
+      "name": "Check Decision",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-approved",
+              "leftValue": "={{ $json.query.decision }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "approve"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        2832,
+        -144
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "v5-save-published-nc",
+      "name": "Save to Published",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $('Extract Post').item.json.postText }}",
+        "operation": "upload",
+        "path": "=/Personal/LinkedIn/Coursework-Auto/Published/{{ $now.format('yyyy-MM-dd') }}_post.txt"
+      },
+      "position": [
+        3104,
+        -304
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "v5-remove-source",
+      "maxTries": 2,
+      "name": "Remove from Pending_Review",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "DELETE",
+        "options": {},
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav{{ $('Extract Post').item.json.selectedFile }}"
+      },
+      "position": [
+        3360,
+        -304
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "v5-send-success",
+      "name": "Send Success Notification",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u2705 LinkedIn post approved and saved!\n\nSource: {{ $('Extract Post').item.json.fileName }}\nSaved to: /Personal/LinkedIn/Coursework-Auto/Published/\nSource file removed from Pending_Review."
+      },
+      "position": [
+        3632,
+        -304
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "b91ae12d-85f8-43de-a92c-0d30e3d3b6d6"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "v5-send-rejection",
+      "name": "Send Rejection Notification",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u274c LinkedIn post rejected.\n\nSource file {{ $('Extract Post').item.json.fileName }} remains in Pending_Review for next run."
+      },
+      "position": [
+        3104,
+        48
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "67ee59b4-e368-4b62-a88a-bb81d667ebef"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "v5-notify-empty",
+      "name": "Notify No Files",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "LinkedIn Content Transformer: No source documents found in Pending_Review. Add .md or .docx files to /Personal/LinkedIn/Coursework-Auto/Pending_Review/ to generate posts."
+      },
+      "position": [
+        912,
+        144
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "ad86a1f6-5d8d-4529-930c-d7e3cd875359"
+    }
+  ],
+  "pinData": {
+    "Schedule: Mon & Wed 8PM": [
+      {
+        "json": {
+          "Day of month": "06",
+          "Day of week": "Friday",
+          "Hour": "11",
+          "Minute": "00",
+          "Month": "February",
+          "Readable date": "February 6th 2026, 11:00:46 am",
+          "Readable time": "11:00:46 am",
+          "Second": "46",
+          "Timezone": "America/Detroit (UTC-05:00)",
+          "Year": "2026",
+          "timestamp": "2026-02-06T11:00:46.989-05:00"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule: Mon & Wed 8PM": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}

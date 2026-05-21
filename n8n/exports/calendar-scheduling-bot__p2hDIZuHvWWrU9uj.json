@@ -1,0 +1,715 @@
+{
+  "active": true,
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_languageModel"
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create on John's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Create on Tamta's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Delete on John's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Delete on Tamta's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Identify Sender": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "T - UMich",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "T - Personal",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Y - Navy",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Y - GWU",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Y - Personal",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Memory": {
+      "ai_memory": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_memory"
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - Personal": {
+      "main": [
+        [
+          {
+            "index": 1,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "T - UMich": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Identify Sender",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update on John's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Update on Tamta's Calendar": {
+      "ai_tool": [
+        [
+          {
+            "index": 0,
+            "node": "AI Agent",
+            "type": "ai_tool"
+          }
+        ]
+      ]
+    },
+    "Y - GWU": {
+      "main": [
+        [
+          {
+            "index": 3,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Navy": {
+      "main": [
+        [
+          {
+            "index": 2,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Y - Personal": {
+      "main": [
+        [
+          {
+            "index": 4,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "p2hDIZuHvWWrU9uj",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Calendar Scheduling Bot",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "iC6WtTBQOVlVkhGC",
+          "name": "Family Calendar Digest"
+        }
+      },
+      "id": "trigger-01",
+      "name": "Telegram Trigger",
+      "parameters": {
+        "additionalFields": {},
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "825b6ad0-0a29-416e-a720-61ece379b398"
+    },
+    {
+      "id": "code-sender",
+      "name": "Identify Sender",
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nconst from = input.message?.from || input.callback_query?.from;\nconst telegramUserId = from?.id;\nconst messageText = input.message?.text || input.callback_query?.data || '';\nconst chatId = input.message?.chat?.id || input.callback_query?.message?.chat?.id;\n\nconst USER_MAP = {\n  1290054454: { name: 'Yianni', calendar: 'jcodis@gmail.com' },\n  1075749544: { name: 'Tamta', calendar: 'tammylillystone@gmail.com' },\n};\n\nconst sender = USER_MAP[telegramUserId] || {\n  name: from?.first_name || 'Unknown',\n  calendar: null\n};\n\nreturn [{\n  json: {\n    senderName: sender.name,\n    senderCalendar: sender.calendar,\n    telegramUserId,\n    messageText,\n    chatId: String(chatId),\n    isKnownUser: !!USER_MAP[telegramUserId]\n  }\n}];"
+      },
+      "position": [
+        240,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cal-tumich",
+      "name": "T - UMich",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "Tamta Lilly Stone Calendar (Canvas)",
+          "mode": "list",
+          "value": "k54kdr8r17632o7mhebt59u9cij53v62@import.calendar.google.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.plus(30, 'days').endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        480,
+        -400
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cal-tpersonal",
+      "name": "T - Personal",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.plus(30, 'days').endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        480,
+        -208
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cal-ynavy",
+      "name": "Y - Navy",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "Navy",
+          "mode": "list",
+          "value": "kou9jkankc0f09rrt3v8k7g66s@group.calendar.google.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.plus(30, 'days').endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        480,
+        0
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cal-ygwu",
+      "name": "Y - GWU",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "john.codis@gwmail.gwu.edu",
+          "mode": "list",
+          "value": "john.codis@gwmail.gwu.edu"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.plus(30, 'days').endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        480,
+        208
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "cal-ypersonal",
+      "name": "Y - Personal",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "operation": "getAll",
+        "options": {},
+        "timeMax": "={{ $now.plus(30, 'days').endOf('day') }}",
+        "timeMin": "={{ $now.startOf('day') }}"
+      },
+      "position": [
+        480,
+        400
+      ],
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "merge-01",
+      "name": "Merge",
+      "parameters": {
+        "numberInputs": 5
+      },
+      "position": [
+        768,
+        0
+      ],
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2
+    },
+    {
+      "id": "code-prompt",
+      "name": "Build Prompt",
+      "parameters": {
+        "jsCode": "const events = $input.all();\nconst senderInfo = $('Identify Sender').first().json;\nconst now = new Date();\n\nfunction getCalendarName(email) {\n  if (!email) return 'Unknown';\n  if (email.includes('tammylillystone')) return 'Tamta (Personal)';\n  if (email.includes('jcodis@gmail')) return 'John (Personal)';\n  if (email.includes('gwmail.gwu.edu')) return 'John (GWU)';\n  if (email.includes('k54kdr8r17632o7mhebt59u9cij53v62')) return 'Tamta (UMich)';\n  if (email.includes('kou9jkankc0f09rrt3v8k7g66s')) return 'John (Navy)';\n  return email.split('@')[0];\n}\n\nconst sorted = [...events]\n  .filter(e => e.json.summary)\n  .sort((a, b) => {\n    const aTime = a.json.start?.dateTime || a.json.start?.date || '9999';\n    const bTime = b.json.start?.dateTime || b.json.start?.date || '9999';\n    return new Date(aTime) - new Date(bTime);\n  });\n\nlet calendarContext = '';\nlet currentDay = '';\n\nfor (const event of sorted) {\n  const e = event.json;\n  const eventDate = e.start?.dateTime || e.start?.date;\n  if (!eventDate) continue;\n\n  const dayLabel = new Date(eventDate).toLocaleDateString('en-US', {\n    weekday: 'long', month: 'short', day: 'numeric',\n    timeZone: 'America/Detroit'\n  });\n\n  if (dayLabel !== currentDay) {\n    currentDay = dayLabel;\n    calendarContext += `\\n${dayLabel}:\\n`;\n  }\n\n  let timeStr = 'All day';\n  if (e.start?.dateTime) {\n    const start = new Date(e.start.dateTime);\n    const end = new Date(e.end.dateTime);\n    timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit' })\n      + ' - ' + end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Detroit' });\n  }\n\n  const calName = getCalendarName(e.organizer?.email);\n  const eventId = e.id || 'unknown';\n  calendarContext += `  - ${e.summary} (${timeStr}) [${calName}] {id: ${eventId}}\\n`;\n}\n\nif (!calendarContext.trim()) {\n  calendarContext = 'No events found in the next 30 days.';\n}\n\nconst currentDate = now.toLocaleDateString('en-US', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',\n  timeZone: 'America/Detroit'\n});\n\nreturn [{\n  json: {\n    prompt: senderInfo.messageText,\n    calendarContext,\n    senderName: senderInfo.senderName,\n    currentDate,\n    chatId: senderInfo.chatId\n  }\n}];"
+      },
+      "position": [
+        992,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "agent-01",
+      "name": "AI Agent",
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are a helpful calendar assistant for the Codis family. Today is {{ $json.currentDate }}. Timezone: America/Detroit (Eastern Time).\n\nThe sender of this message is: {{ $json.senderName }}\n\nCALENDAR DATA (next 30 days across all family calendars):\n{{ $json.calendarContext }}\n\nEach event includes its ID in curly braces like {id: abc123}. Use these IDs when updating or deleting events.\n\nYOUR CAPABILITIES:\n1. Answer questions about availability and schedule\n2. Check for conflicts at specific times\n3. Create events on the sender's calendar\n4. Update existing events (change time, title)\n5. Delete events\n\nCALENDAR ACCESS:\n- Yianni: Use \"Create on John's Calendar\", \"Update on John's Calendar\", \"Delete on John's Calendar\"\n- Tamta: Use \"Create on Tamta's Calendar\", \"Update on Tamta's Calendar\", \"Delete on Tamta's Calendar\"\n- Always use the correct tools based on who is sending the message\n- Only modify events on the sender's own calendars unless they explicitly ask to change someone else's event\n\nEVENT TYPE DETECTION:\nDetect the event type from keywords in the user's message:\n\nWORK EVENTS (keywords: interview, meeting, call, conference, standup, sync, review, presentation, demo, training, workshop, office, work, class, lecture, exam, study):\n- Only check availability during 9 AM - 5 PM Eastern\n- If the user requests a time outside 9-5, suggest a time within work hours instead\n\nPERSONAL EVENTS (keywords: party, dinner, lunch, breakfast, brunch, appointment, dentist, doctor, haircut, gym, workout, date, movie, concert, game, birthday, kids, soccer, pickup, dropoff, grocery, errands, family, friends, hangout, coffee, drinks):\n- Can be scheduled anytime (no hour restrictions)\n- Still check ALL calendars for conflicts\n\nIf the event type is ambiguous, ask the user whether it's work or personal.\n\nAVAILABILITY RULES:\n- Work availability: 9 AM - 5 PM Eastern only\n- Personal availability: Any time of day\n- Minimum free block: 1 hour\n- No buffer needed between events\n- All-day events do NOT block time slots\n- When the user asks \"am I free\" or \"what does my week look like\" without specifying an event type, show work hours (9-5) availability by default, but mention they have additional free time outside work hours for personal events\n\nWHEN CHECKING AVAILABILITY:\n- Look across ALL 5 calendars for conflicts\n- Present free time as clean blocks (e.g. Monday 10:00 AM - 12:00 PM)\n- Group by day for readability\n- Label blocks as \"Work hours\" or \"Personal time\" as appropriate\n\nWHEN SCHEDULING:\n- Default to the sender's personal calendar\n- Always check ALL calendars for conflicts first\n- If conflict found: explain the conflict, suggest 3 alternative times (same day preferred, then adjacent days)\n- ALWAYS ask for confirmation before creating, updating, or deleting any event\n- When confirmed, use the appropriate calendar tool\n- Provide start and end times in ISO 8601 format with timezone offset (e.g. 2026-02-03T16:00:00-05:00)\n\nWHEN UPDATING OR DELETING:\n- Find the event in the calendar data by matching the name and/or time the user mentions\n- Use the event ID from the calendar data to update or delete\n- ALWAYS confirm with the user before making changes\n- When updating, only change the fields the user asked to change\n\nRESPONSE STYLE:\n- Conversational and helpful, not robotic\n- Keep responses concise for Telegram\n- Use line breaks for readability\n- Do NOT use markdown bold/italic (no asterisks) - plain text only"
+        },
+        "promptType": "define",
+        "text": "={{ $json.prompt }}"
+      },
+      "position": [
+        1264,
+        0
+      ],
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "llm-anthropic",
+      "name": "Anthropic Chat Model",
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-4-20250514"
+        },
+        "options": {}
+      },
+      "position": [
+        1072,
+        224
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "memory-01",
+      "name": "Memory",
+      "parameters": {
+        "contextWindowLength": 10,
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Identify Sender').first().json.telegramUserId }}"
+      },
+      "position": [
+        1072,
+        384
+      ],
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-johncal",
+      "name": "Create on John's Calendar",
+      "parameters": {
+        "additionalFields": {
+          "summary": "={{ $fromAI('summary', 'Event title or name', 'string') }}"
+        },
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "end": "={{ $fromAI('end', 'Event end time in ISO 8601 format with timezone, e.g. 2026-02-03T11:00:00-05:00', 'string') }}",
+        "operation": "create",
+        "resource": "event",
+        "start": "={{ $fromAI('start', 'Event start time in ISO 8601 format with timezone, e.g. 2026-02-03T10:00:00-05:00', 'string') }}",
+        "toolDescription": "Use this tool to create events on John's personal Google Calendar (jcodis@gmail.com). Provide the event start time, end time, and title."
+      },
+      "position": [
+        1072,
+        528
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "iC6WtTBQOVlVkhGC",
+          "name": "Family Calendar Digest"
+        }
+      },
+      "id": "tg-send",
+      "name": "Send Response",
+      "parameters": {
+        "additionalFields": {
+          "appendAttribution": false
+        },
+        "chatId": "={{ $('Build Prompt').first().json.chatId }}",
+        "operation": "sendMessage",
+        "text": "={{ $json.output }}"
+      },
+      "position": [
+        1552,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "840d9336-eeca-4ff3-b9ca-bdb88f1e610d"
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-tamtacal",
+      "name": "Create on Tamta's Calendar",
+      "parameters": {
+        "additionalFields": {
+          "summary": "={{ $fromAI('summary', 'Event title or name', 'string') }}"
+        },
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "end": "={{ $fromAI('end', 'Event end time in ISO 8601 format with timezone, e.g. 2026-02-03T11:00:00-05:00', 'string') }}",
+        "operation": "create",
+        "resource": "event",
+        "start": "={{ $fromAI('start', 'Event start time in ISO 8601 format with timezone, e.g. 2026-02-03T10:00:00-05:00', 'string') }}",
+        "toolDescription": "Use this tool to create events on Tamta's personal Google Calendar (tammylillystone@gmail.com). Provide the event start time, end time, and title."
+      },
+      "position": [
+        1072,
+        672
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-john-update",
+      "name": "Update on John's Calendar",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event ID to update', 'string') }}",
+        "operation": "update",
+        "resource": "event",
+        "toolDescription": "Use this tool to update an existing event on John's calendar (jcodis@gmail.com). You must provide the event ID. You can change the start time, end time, or title.",
+        "updateFields": {
+          "end": "={{ $fromAI('end', 'New end time in ISO 8601 format, or empty to keep unchanged', 'string') }}",
+          "start": "={{ $fromAI('start', 'New start time in ISO 8601 format, or empty to keep unchanged', 'string') }}",
+          "summary": "={{ $fromAI('summary', 'New event title, or empty to keep unchanged', 'string') }}"
+        }
+      },
+      "position": [
+        1072,
+        816
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-john-delete",
+      "name": "Delete on John's Calendar",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "jcodis@gmail.com",
+          "mode": "list",
+          "value": "jcodis@gmail.com"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event ID to delete', 'string') }}",
+        "operation": "delete",
+        "resource": "event",
+        "toolDescription": "Use this tool to delete an event from John's calendar (jcodis@gmail.com). You must provide the event ID."
+      },
+      "position": [
+        1072,
+        960
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-tamta-update",
+      "name": "Update on Tamta's Calendar",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event ID to update', 'string') }}",
+        "operation": "update",
+        "resource": "event",
+        "toolDescription": "Use this tool to update an existing event on Tamta's calendar (tammylillystone@gmail.com). You must provide the event ID. You can change the start time, end time, or title.",
+        "updateFields": {
+          "end": "={{ $fromAI('end', 'New end time in ISO 8601 format, or empty to keep unchanged', 'string') }}",
+          "start": "={{ $fromAI('start', 'New start time in ISO 8601 format, or empty to keep unchanged', 'string') }}",
+          "summary": "={{ $fromAI('summary', 'New event title, or empty to keep unchanged', 'string') }}"
+        }
+      },
+      "position": [
+        1072,
+        1104
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    },
+    {
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "pHh77zVELPJO5yVU",
+          "name": "Google Calendar account"
+        }
+      },
+      "id": "tool-tamta-delete",
+      "name": "Delete on Tamta's Calendar",
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "cachedResultName": "tammylillystone@gmail.com",
+          "mode": "list",
+          "value": "tammylillystone@gmail.com"
+        },
+        "eventId": "={{ $fromAI('eventId', 'The Google Calendar event ID to delete', 'string') }}",
+        "operation": "delete",
+        "resource": "event",
+        "toolDescription": "Use this tool to delete an event from Tamta's calendar (tammylillystone@gmail.com). You must provide the event ID."
+      },
+      "position": [
+        1072,
+        1248
+      ],
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

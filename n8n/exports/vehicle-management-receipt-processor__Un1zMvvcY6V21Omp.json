@@ -1,0 +1,1047 @@
+{
+  "active": true,
+  "connections": {
+    "Aggregate Part IDs": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get Original Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Maintenance Log": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Maintenance Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Order": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Receipt Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Part": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Aggregate Part IDs",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Repair": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get Original Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Order",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Parts?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Query Part HTTP",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Create Maintenance Log",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Lookup Vehicle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Merge Vehicle Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Maintenance Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Respond to Webhook",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Merge Vehicle Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prepare Parts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prepare Parts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Parts?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Process Lookup": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Maintenance Log",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Query Part HTTP": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Process Lookup",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Receipt Lookup Vehicle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Receipt Merge Vehicle",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Receipt Merge Vehicle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Split Items",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Receipt Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Respond to Webhook",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Has Parts?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Query Part",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Create Repair",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Lookup Vehicle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Merge Vehicle",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Merge Vehicle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Prepare Parts",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Prepare Parts": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Has Parts?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Process Lookup": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Repair",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Query Part": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Repair Process Lookup",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Repair Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Respond to Webhook",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Receipt Lookup Vehicle",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Lookup Vehicle",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Repair Lookup Vehicle",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Part",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Route by Type",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "Un1zMvvcY6V21Omp",
+  "isArchived": false,
+  "meta": null,
+  "name": "Vehicle Management - Receipt Processor",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "vehicle-receipt",
+        "responseMode": "responseNode"
+      },
+      "position": [
+        0,
+        304
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "vehicle-receipt"
+    },
+    {
+      "disabled": false,
+      "id": "switch-type",
+      "name": "Route by Type",
+      "parameters": {
+        "mode": "expression",
+        "options": {},
+        "output": "={{ {\"receipt\": 0, \"maintenance\": 1, \"repair\": 2}[$json.body.type] ?? -1 }}"
+      },
+      "position": [
+        224,
+        304
+      ],
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "receipt-split-items",
+      "name": "Split Items",
+      "parameters": {
+        "jsCode": "// Split body.items and flatten each item with parent data (including vehiclePageId)\nconst body = $input.first().json;\nconst items = body.items || [];\n\nreturn items.map(item => ({\n  json: {\n    ...item,\n    body: body,\n    vehiclePageId: body.vehiclePageId || null\n  }\n}));"
+      },
+      "position": [
+        480,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "receipt-create-part",
+      "name": "Create Part",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '31dfe92cee6480da9ba0c6d695760848' }, properties: { 'Part Name': { title: [{ text: { content: ($json.part_number ? $json.part_number + ' - ' : '') + ($json.description || '') } }] }, 'Part': { rich_text: [{ text: { content: $json.part_number || '' } }] }, 'Brand': { select: { name: $json.brand || 'Other' } }, 'Category': { select: { name: $json.category || 'Other' } }, 'Quantity': { number: $json.quantity || 1 }, 'Price Paid': { number: $json.price || 0 }, 'Source': { select: { name: $json.body.vendor || 'Other' } }, 'Date Purchased': { date: { start: $json.body.date } }, 'On Hand': { checkbox: true }, 'Notes': { rich_text: [{ text: { content: $json.notes || '' } }] }, 'Vehicle': { relation: $json.vehiclePageId ? [{ id: $json.vehiclePageId }] : [] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        704,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "receipt-aggregate-parts",
+      "name": "Aggregate Part IDs",
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "id",
+              "outputFieldName": "partIds",
+              "renameField": true
+            }
+          ]
+        },
+        "options": {
+          "keepMissing": false
+        }
+      },
+      "position": [
+        928,
+        112
+      ],
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1
+    },
+    {
+      "id": "receipt-get-original",
+      "name": "Get Original Data",
+      "parameters": {
+        "jsCode": "// Get aggregated part IDs and original webhook data\nconst partIds = $input.all()[0].json.partIds || [];\nconst originalData = $('Receipt Merge Vehicle').first().json;\n\nreturn [{\n  json: {\n    ...originalData,\n    createdPartIds: partIds\n  }\n}];"
+      },
+      "position": [
+        1152,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "receipt-create-order",
+      "name": "Create Order",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '31dfe92cee6480ccbe2cc9bbeda2cdad' }, properties: { 'Order': { title: [{ text: { content: $json.vendor + ' ' + ($json.order_number || '') } }] }, 'Vendor': { select: { name: $json.vendor || 'Other' } }, 'Order Number': { rich_text: [{ text: { content: $json.order_number || '' } }] }, 'Date': { date: { start: $json.date } }, 'Subtotal': { number: $json.subtotal || 0 }, 'Tax': { number: $json.tax || 0 }, 'Shipping': { number: $json.shipping || 0 }, 'Discounts': { number: $json.discounts || 0 }, 'Total': { number: $json.total || 0 }, 'Items': { relation: ($json.createdPartIds || []).map(id => ({ id })) }, 'Vehicle': { relation: $json.vehiclePageId ? [{ id: $json.vehiclePageId }] : [] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        1360,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "receipt-response",
+      "name": "Receipt Response",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "type",
+              "name": "type",
+              "type": "string",
+              "value": "receipt"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "Receipt processed successfully"
+            },
+            {
+              "id": "orderId",
+              "name": "orderId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "id": "partsCreated",
+              "name": "partsCreated",
+              "type": "number",
+              "value": "={{ $('Get Original Data').item.json.createdPartIds.length }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        1584,
+        112
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "maint-lookup-vehicle",
+      "name": "Lookup Vehicle",
+      "parameters": {
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "31dfe92cee6480219127d1e559b10b8d"
+        },
+        "filterJson": "={{ JSON.stringify({ \"property\": \"VIN\", \"rich_text\": { \"equals\": $json.body.vehicle_vin } }) }}",
+        "filterType": "json",
+        "limit": 1,
+        "operation": "getAll",
+        "options": {},
+        "resource": "databasePage"
+      },
+      "position": [
+        400,
+        304
+      ],
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "maint-merge-vehicle",
+      "name": "Merge Vehicle Data",
+      "parameters": {
+        "jsCode": "// Get vehicle ID and merge with original data\nconst items = $input.all();\nconst vehicleId = items[0]?.json?.id || null;\nconst originalData = $('Route by Type').first().json.body;\n\nreturn [{\n  json: {\n    ...originalData,\n    vehiclePageId: vehicleId\n  }\n}];"
+      },
+      "position": [
+        592,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "maint-create-log",
+      "name": "Create Maintenance Log",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '31dfe92cee6480bd84dad74b3d1cccdd' }, properties: { 'Description': { title: [{ text: { content: $json.description || '' } }] }, 'Date': { date: { start: $json.date } }, 'Mileage': { number: $json.mileage || 0 }, 'Cost': { number: $json.cost || 0 }, 'Who': { select: { name: $json.who || 'Self' } }, 'Notes': { rich_text: [{ text: { content: $json.notes || '' } }] }, 'Parts Used': { relation: ($json.foundPartIds || []).map(id => ({ id })) }, 'Vehicle': { relation: $json.vehiclePageId ? [{ id: $json.vehiclePageId }] : [] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        1312,
+        304
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "maint-response",
+      "name": "Maintenance Response",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "type",
+              "name": "type",
+              "type": "string",
+              "value": "maintenance"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "Maintenance log created successfully"
+            },
+            {
+              "id": "maintenanceId",
+              "name": "maintenanceId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        1488,
+        304
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "repair-lookup-vehicle",
+      "name": "Repair Lookup Vehicle",
+      "parameters": {
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "31dfe92cee6480219127d1e559b10b8d"
+        },
+        "filterJson": "={{ JSON.stringify({ \"property\": \"VIN\", \"rich_text\": { \"equals\": $json.body.vehicle_vin } }) }}",
+        "filterType": "json",
+        "limit": 1,
+        "operation": "getAll",
+        "options": {},
+        "resource": "databasePage"
+      },
+      "position": [
+        400,
+        512
+      ],
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "repair-merge-vehicle",
+      "name": "Repair Merge Vehicle",
+      "parameters": {
+        "jsCode": "// Get vehicle ID and merge with original data\nconst items = $input.all();\nconst vehicleId = items[0]?.json?.id || null;\nconst originalData = $('Route by Type').first().json.body;\n\nreturn [{\n  json: {\n    ...originalData,\n    vehiclePageId: vehicleId\n  }\n}];"
+      },
+      "position": [
+        592,
+        512
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "repair-prepare-parts",
+      "name": "Repair Prepare Parts",
+      "parameters": {
+        "jsCode": "// Extract part numbers for lookup\nconst originalData = $input.all()[0].json;\nconst parts = originalData.parts || [];\n\nif (parts.length === 0) {\n  // No parts - pass through with empty foundPartIds\n  return [{ json: { ...originalData, foundPartIds: [] } }];\n}\n\n// Output one item per part to lookup, include originalData for merging\nreturn parts.filter(p => p.part_number).map(part => ({\n  json: {\n    lookupPartNumber: part.part_number,\n    originalData: originalData\n  }\n}));"
+      },
+      "position": [
+        768,
+        512
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "repair-create",
+      "name": "Create Repair",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '31dfe92cee6480a68a8ee17e868f3e6d' }, properties: { 'Issue': { title: [{ text: { content: $json.issue || '' } }] }, 'Date': { date: { start: $json.date } }, 'Mileage': { number: $json.mileage || 0 }, 'Root Cause': { rich_text: [{ text: { content: $json.root_cause || '' } }] }, 'Fix Description': { rich_text: [{ text: { content: $json.fix_description || '' } }] }, 'Labor Cost': { number: $json.labor_cost || 0 }, 'Shop Name': { rich_text: [{ text: { content: $json.shop_name || '' } }] }, 'Status': { status: { name: {'Fixed': 'Done', 'Diagnosed': 'In progress', 'In Progress': 'In progress'}[$json.status] || $json.status || 'Not started' } }, 'Notes': { rich_text: [{ text: { content: $json.notes || '' } }] }, 'Parts Used': { relation: ($json.foundPartIds || []).map(id => ({ id })) }, 'Vehicle': { relation: $json.vehiclePageId ? [{ id: $json.vehiclePageId }] : [] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        1312,
+        512
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "repair-response",
+      "name": "Repair Response",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "success",
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "type",
+              "name": "type",
+              "type": "string",
+              "value": "repair"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "Repair record created successfully"
+            },
+            {
+              "id": "repairId",
+              "name": "repairId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        1488,
+        512
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "position": [
+        1808,
+        304
+      ],
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "maint-prepare-parts",
+      "name": "Prepare Parts",
+      "parameters": {
+        "jsCode": "// Extract part numbers for lookup\nconst originalData = $input.all()[0].json;\nconst parts = originalData.parts || [];\n\nif (parts.length === 0) {\n  // No parts - pass through with empty foundPartIds\n  return [{ json: { ...originalData, foundPartIds: [] } }];\n}\n\n// Output one item per part to lookup, include originalData for merging\nreturn parts.filter(p => p.part_number).map(part => ({\n  json: {\n    lookupPartNumber: part.part_number,\n    originalData: originalData\n  }\n}));"
+      },
+      "position": [
+        780,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "fd0abd3f-9bc1-4157-a1dd-dec8624f196d",
+      "name": "Query Part HTTP",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ filter: { property: 'Part Name', title: { starts_with: $json.lookupPartNumber } }, page_size: 1 }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/databases/31dfe92cee6480da9ba0c6d695760848/query"
+      },
+      "position": [
+        900,
+        400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "b54bedbf-5cf3-4d14-88e2-561ca3254a81",
+      "name": "Process Lookup",
+      "parameters": {
+        "jsCode": "// Collect part IDs and merge back with original data\nconst items = $input.all();\nconst foundPartIds = [];\nlet originalData = null;\n\nfor (const item of items) {\n  if (!originalData && item.json.originalData) {\n    originalData = item.json.originalData;\n  }\n  if (item.json.results && item.json.results.length > 0) {\n    foundPartIds.push(item.json.results[0].id);\n  }\n}\n\n// Fallback: get original data from Prepare Parts node\nif (!originalData) {\n  try {\n    const preparePartsItems = $('Prepare Parts').all();\n    for (const item of preparePartsItems) {\n      if (item.json.originalData) {\n        originalData = item.json.originalData;\n        break;\n      }\n    }\n    if (!originalData) {\n      originalData = preparePartsItems[0]?.json || {};\n    }\n  } catch(e) {\n    originalData = {};\n  }\n}\n\nreturn [{ json: { ...originalData, foundPartIds } }];"
+      },
+      "position": [
+        1100,
+        400
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "dfb7920d-1ebf-4c0f-b67f-cd1fa7637262",
+      "name": "Has Parts?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-maint-check",
+              "leftValue": "={{ $json.lookupPartNumber ? true : false }}",
+              "operator": {
+                "operation": "equals",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        850,
+        304
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "e420827f-c79c-4c38-992c-bd8d449846aa",
+      "name": "Repair Query Part",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ filter: { property: 'Part Name', title: { starts_with: $json.lookupPartNumber } }, page_size: 1 }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/databases/31dfe92cee6480da9ba0c6d695760848/query"
+      },
+      "position": [
+        900,
+        600
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "1ea7b110-251c-48b3-930f-0007a037a6e5",
+      "name": "Repair Process Lookup",
+      "parameters": {
+        "jsCode": "// Collect part IDs and merge back with original data\nconst items = $input.all();\nconst foundPartIds = [];\nlet originalData = null;\n\nfor (const item of items) {\n  if (!originalData && item.json.originalData) {\n    originalData = item.json.originalData;\n  }\n  if (item.json.results && item.json.results.length > 0) {\n    foundPartIds.push(item.json.results[0].id);\n  }\n}\n\n// Fallback: get original data from Repair Prepare Parts node\nif (!originalData) {\n  try {\n    const preparePartsItems = $('Repair Prepare Parts').all();\n    for (const item of preparePartsItems) {\n      if (item.json.originalData) {\n        originalData = item.json.originalData;\n        break;\n      }\n    }\n    if (!originalData) {\n      originalData = preparePartsItems[0]?.json || {};\n    }\n  } catch(e) {\n    originalData = {};\n  }\n}\n\nreturn [{ json: { ...originalData, foundPartIds } }];"
+      },
+      "position": [
+        1100,
+        600
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "1d753dcc-31a6-48db-b501-e42378261de6",
+      "name": "Repair Has Parts?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-repair-check",
+              "leftValue": "={{ $json.lookupPartNumber ? true : false }}",
+              "operator": {
+                "operation": "equals",
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        850,
+        512
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "3Q12erH3ArnPybLP",
+          "name": "Vehicle Management Notion"
+        }
+      },
+      "id": "receipt-lookup-vehicle",
+      "name": "Receipt Lookup Vehicle",
+      "parameters": {
+        "databaseId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "31dfe92cee6480219127d1e559b10b8d"
+        },
+        "filterJson": "={{ JSON.stringify({ \"property\": \"VIN\", \"rich_text\": { \"equals\": $json.body.vehicle_vin || '' } }) }}",
+        "filterType": "json",
+        "limit": 1,
+        "operation": "getAll",
+        "options": {},
+        "resource": "databasePage"
+      },
+      "position": [
+        340,
+        50
+      ],
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "receipt-merge-vehicle",
+      "name": "Receipt Merge Vehicle",
+      "parameters": {
+        "jsCode": "// Get vehicle ID if found, merge with original data\nconst items = $input.all();\nconst vehicleId = items[0]?.json?.id || null;\nconst originalData = $('Route by Type').first().json.body;\n\nreturn [{\n  json: {\n    ...originalData,\n    vehiclePageId: vehicleId\n  }\n}];"
+      },
+      "position": [
+        420,
+        50
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": []
+}

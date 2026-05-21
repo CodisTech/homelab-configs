@@ -1,0 +1,324 @@
+{
+  "active": true,
+  "connections": {
+    "Anthropic Claude": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build verifier request",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Apply verifier": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Format for Telegram",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code in JavaScript",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Build verifier request": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Verifier Anthropic",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Anthropic Claude",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cron 07:00 ET": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Read Wazuh summary",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Format for Telegram": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Read Wazuh summary": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Verifier Anthropic": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Apply verifier",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "egiYz0MPZmHXlWrAfxrOC",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Francis \u2014 daily digest",
+  "nodes": [
+    {
+      "id": "2e55491c-a8fe-4e01-bdd8-c95d08316316",
+      "name": "Cron 07:00 ET",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 8 * * *",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "a8aba666-02da-4a51-8491-54751c98646f",
+      "name": "Read Wazuh summary",
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/francis/wazuh-daily.json",
+        "options": {}
+      },
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1
+    },
+    {
+      "id": "c9f3efa0-aab4-45f5-9019-46e9a8ca159a",
+      "name": "Build prompt",
+      "parameters": {
+        "jsCode": "const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst summary = JSON.parse(buffer.toString('utf-8'));\n\nconst noisy = (summary.top_rules || [])\n  .filter(r => r.count >= 50)\n  .map(r => `  - ${r.description} (id ${r.rule_id}): ${r.count}`)\n  .join('\\n') || '  (none above 50)';\n\nconst byLevel = Object.entries(summary.by_level || {})\n  .map(([lvl, cnt]) => `level ${lvl}: ${cnt}`)\n  .join(', ') || 'none';\n\nconst critical = (summary.critical_alerts || [])\n  .map(c => `  - [L${c.level}] ${c.description} on ${c.agent} @ ${c.timestamp}\\n    ${c.full_log.slice(0, 200)}`)\n  .join('\\n') || '  (none \u2014 clean overnight)';\n\nconst byAgent = Object.entries(summary.by_agent || {})\n  .slice(0, 10)\n  .map(([a, c]) => `  - ${a}: ${c}`)\n  .join('\\n') || '  (none)';\n\nconst sca = summary.sca_delta || {};\nconst failed = (sca.new_failures || [])\n  .map(f => `  - [${f.policy}] check ${f.check_id} on ${f.agent}: ${f.title}`)\n  .join('\\n');\nconst transitions = (sca.transitions || [])\n  .map(t => `  - [${t.policy}] check ${t.check_id} on ${t.agent}: ${t.from} -> ${t.to} (${t.events_today} events)`)\n  .join('\\n');\nconst scaSection = (failed || transitions)\n  ? `SCA delta (CIS / hardening checks, last 24h, ${sca.total_sca_events || 0} events):\\n` +\n    (failed ? `\\nChecks ending FAILED today:\\n${failed}\\n` : '') +\n    (transitions ? `\\nChecks that flipped today:\\n${transitions}\\n` : '')\n  : `SCA delta: 0 failed checks, 0 transitions (${sca.total_sca_events || 0} events). All hardening checks stable.`;\n\nconst userPrompt = `Wazuh activity for ${summary.window_since.slice(0,10)} (UTC, ${summary.total_alerts} alerts).\\n\\nLevel distribution: ${byLevel}\\n\\nTop rules (>=50 hits):\\n${noisy}\\n\\nBy agent (top 10):\\n${byAgent}\\n\\nCritical alerts (level >=12):\\n${critical}\\n\\n${scaSection}\\n\\nWrite a concise security digest for a homelab operator. Lead with anything that needs action; bury the routine. For SCA, distinguish real config drift from the recurring \\`sshd -T\\` scan-resolution artifact (UsePAM / MACs / PermitUserEnvironment on Ubuntu agents) \u2014 those are known false-positive flaps, not actionable. Markdown OK. Aim for under 30 lines.`;\n\nreturn [{ json: {\n  total_alerts: summary.total_alerts,\n  critical_count: (summary.critical_alerts || []).length,\n  sca_failed_count: (sca.new_failures || []).length,\n  sca_transitions_count: (sca.transitions || []).length,\n  user_prompt: userPrompt,\n  window: summary.window_since.slice(0,10),\n  top_rules_raw: summary.top_rules || [],\n  by_level_raw: summary.by_level || {},\n  critical_alerts_raw: summary.critical_alerts || [],\n  by_agent_raw: summary.by_agent || {},\n}}];\n"
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "V6fIe8uEO27Pgc2O",
+          "name": "Anthropic API Key"
+        }
+      },
+      "id": "bc574ab5-7a00-4e69-bea1-44483e20e722",
+      "name": "Anthropic Claude",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "5a7fd9d0-3f21-41ec-8af6-9bd2a39ec343",
+      "name": "Format for Telegram",
+      "parameters": {
+        "jsCode": "// Extract the assistant text from the Anthropic response and format for\n// Telegram. Telegram MarkdownV2 has lots of escapes \u2014 for v1 we use plain\n// markdown with parseMode=Markdown which is more forgiving.\nconst resp = $input.first().json;\nconst text = (resp.content && resp.content[0] && resp.content[0].text) || '(no response)';\n\nconst dateLine = `*Francis digest \u2014 ${$('Build prompt').item.json.window}*`;\nconst stats = `_${$('Build prompt').item.json.total_alerts} alerts, ${$('Build prompt').item.json.critical_count} critical_`;\n\nreturn [{ json: {\n  message: `${dateLine}\\n${stats}\\n\\n${text}`,\n}}];"
+      },
+      "position": [
+        1748,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "JuP1hxzHyO1GKJMh",
+          "name": "Francis Bot"
+        }
+      },
+      "id": "300af578-ce70-4832-9980-1f7f7056c5dc",
+      "name": "Send Telegram",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        },
+        "chatId": "-5168942238",
+        "text": "={{ $json.message }}"
+      },
+      "position": [
+        1972,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "1af1c314-e78e-4388-8231-b3c2a0cb66e7"
+    },
+    {
+      "id": "9e475009-980f-4ebe-bc61-83ec531fd7d0",
+      "name": "Code in JavaScript",
+      "parameters": {
+        "jsCode": " const system = `You are Francis, a terse security analyst writing a morning digest for a single homelab operator.\n\n  You have ONLY the following data: total alert count, level distribution, top rules by count (>=50 hits), per-agent alert counts (top 10), critical alerts with their full_log (level >=12), and SCA delta (failed checks + transitions). You do NOT have \n  FIM/syscheck details, dpkg/apt history, network flows, Loki logs, or any other source. Do not reference data you were not given.\n\n  GROUNDING RULES (non-negotiable):\n  - Every claim must come directly from the data provided. No inference, no estimation, no cross-source correlation that is not explicit in the input.\n  - For each L12+ critical alert: state the rule, agent, and a factual restatement of the full_log line. Do NOT propose root causes or hypotheses unless the cause is plain in the log line itself. If a likely cause is not visible, say 'investigate' - \n  do not guess.\n  - If a section has no data, say '(none)' - do not fill space.\n  - Quote rule IDs, agent names, and IP/port values verbatim from the input.\n\n  OUTPUT: Markdown, under 30 lines. Lead with action items. Bury routine. SCA: distinguish real config drift from recurring \\`sshd -T\\` scan-resolution flaps (UsePAM/MACs/PermitUserEnvironment) - those are known false-positive flaps.`;\n\n  return [{ json: {\n    model: \"claude-sonnet-4-6\",\n    max_tokens: 1024,\n    system,\n    messages: [{ role: \"user\", content: $json.user_prompt }]\n  }}];"
+      },
+      "position": [
+        656,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "fbf807e5-48e6-43fb-8ce4-97b8403417a7",
+      "name": "Build verifier request",
+      "parameters": {
+        "jsCode": "// Build verifier request body. Pulls draft digest from Anthropic Claude\n// output and raw rule + agent + level breakdown from Build prompt.\nconst resp = $input.first().json;\nconst draftText = (resp.content && resp.content[0] && resp.content[0].text) || \"\";\n\nconst bp = $(\"Build prompt\").item.json;\nconst rules = bp.top_rules_raw || [];\nconst levels = bp.by_level_raw || {};\nconst agents = bp.by_agent_raw || {};\n\nconst rulesLines = rules\n  .map(r => \"  rule \" + r.rule_id + \" [L\" + (r.level ?? 0) + \"] (\\x27\" + r.description + \"\\x27): \" + r.count)\n  .join(\"\\n\") || \"  (none)\";\nconst levelsLine = Object.entries(levels)\n  .map(([lvl, cnt]) => \"L\" + lvl + \"=\" + cnt)\n  .join(\", \") || \"none\";\nconst agentsLines = Object.entries(agents)\n  .sort((a, b) => b[1] - a[1])\n  .map(([name, cnt]) => \"  \" + name + \": \" + cnt)\n  .join(\"\\n\") || \"  (none)\";\n\nconst userMsg = \"DIGEST:\\n\" + draftText + \"\\n\\nRAW DATA:\\nLevel distribution: \" + levelsLine + \"\\n\\nAll rules by count:\\n\" + rulesLines + \"\\n\\nAll agents by alert count:\\n\" + agentsLines;\n\nconst system = \"You are a verifier checking a security digest against raw alert data. Each rule in RAW DATA is listed with its Wazuh rule.level shown explicitly in [L#] brackets \u2014 for example, \\x27rule 86601 [L3]\\x27 means rule.level=3. Use the bracketed [L#] as the authoritative level. Do NOT infer level from the rule description text, signature severity, MITRE tags, or any other field. Apply these rules in order:\\n\\n\" +\n\"1. Any rule at level >= 10 with >= 1 hit in RAW DATA that is not named or grouped explicitly in the DIGEST: FLAG.\\n\" +\n\"2. Any rule at level 7-9 with > 10 hits in RAW DATA that is not named or grouped explicitly in the DIGEST: FLAG.\\n\" +\n\"3. Any rule at level <= 6 with > 5 hits whose description indicates an auth anomaly (description contains \\x27failed login\\x27, \\x27invalid user\\x27, \\x27illegal root login\\x27, \\x27brute force\\x27, or \\x27non-existent user\\x27): FLAG. Examples: rule 5710 \\x27Attempt to login using a non-existent user\\x27 (L5), rule 2504 \\x27Illegal root login\\x27, rule 5763 \\x27sshd brute force\\x27.\\n\" +\n\"4. Any per-agent claim in DIGEST (e.g. \\x27agent X has Y total alerts\\x27) that contradicts the \\x27All agents by alert count\\x27 block in RAW DATA: FLAG. If the agent total in the DIGEST matches the RAW DATA exactly, DO NOT flag.\\n\" +\n\"5. Any other factual contradiction between DIGEST and RAW DATA: FLAG.\\n\\n\" +\n\"Naming means the rule_id appears verbatim OR a clear substring of the rule description appears. Silent aggregation into a generic bucket like \\x27auth churn\\x27 / \\x27session activity\\x27 / \\x27routine FIM\\x27 is NOT acceptable for rules covered by 1-3 above.\\n\\n\" +\n\"If no issues, return EXACTLY \\x27OK\\x27. Otherwise return a bulleted markdown list, one bullet per issue, terse. Do not write anything else.\";\n\nreturn [{ json: {\n  model: \"claude-sonnet-4-6\",\n  max_tokens: 512,\n  system,\n  messages: [{ role: \"user\", content: userMsg }]\n}}];\n"
+      },
+      "position": [
+        1100,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "V6fIe8uEO27Pgc2O",
+          "name": "Anthropic API Key"
+        }
+      },
+      "id": "0f917fa2-6fb8-49ae-9fd7-677f0f67a3fa",
+      "name": "Verifier Anthropic",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        1320,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "26440fc6-acf5-4421-bc77-1854240500f8",
+      "name": "Apply verifier",
+      "parameters": {
+        "jsCode": "// Read verifier output. If 'OK', pass through original draft unchanged.\n// Else prepend a warn block listing discrepancies, then the draft.\n// Output shape mirrors Anthropic response so Format for Telegram works unchanged.\nconst vresp = $input.first().json;\nconst verifierText = ((vresp.content && vresp.content[0] && vresp.content[0].text) || '').trim();\n\nconst draftResp = $('Anthropic Claude').item.json;\nconst draftText = (draftResp.content && draftResp.content[0] && draftResp.content[0].text) || '';\n\nconst ok = /^OK\\.?$/i.test(verifierText);\nconst finalText = ok\n  ? draftText\n  : `\\u26a0\\ufe0f *Verifier flagged:*\\n${verifierText}\\n\\n---\\n\\n${draftText}`;\n\nreturn [{ json: {\n  content: [{ type: 'text', text: finalText }],\n}}];\n"
+      },
+      "position": [
+        1540,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "francis"
+  ]
+}

@@ -1,0 +1,25 @@
+services:
+  plex:
+    image: linuxserver/plex:latest
+    container_name: plex
+    environment:
+      - PUID=${PUID}  # User ID from .env
+      - PGID=${PGID}  # Group ID from .env
+      - PLEX_CLAIM=${PLEX_CLAIM} 
+      - VERSION=docker  # To keep updated with the latest Plex version
+    network_mode: "bridge"
+    ports:
+      - 32400:32400/tcp
+      - 32401:32401/tcp
+      - 32469:32469/tcp
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    volumes:
+      - /home/serveradmin/docker_volumes/media/plex/config:/config  # Path for Plex configuration data on host
+      - /home/serveradmin/docker_volumes/media/plex/transcode:/transcode  # Path for transcoding on host
+      - /mnt/nfs_share/:/media  # Mount NFS share to Plex's media directory
+    restart: unless-stopped
+

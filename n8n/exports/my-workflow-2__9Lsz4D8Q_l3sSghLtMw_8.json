@@ -1,0 +1,65 @@
+{
+  "active": false,
+  "connections": {
+    "When clicking \u2018Execute workflow\u2019": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a text message",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "9Lsz4D8Q_l3sSghLtMw_8",
+  "isArchived": true,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "id": "da7a368d-46b4-4b22-861e-eaa88b77e11c",
+      "name": "When clicking \u2018Execute workflow\u2019",
+      "parameters": {},
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "d040c515-a6d2-4682-aa5b-4f4be87ae784",
+      "name": "Send a text message",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "\ud83c\udf89 Test message from n8n! Telegram notifications are working! \ud83d\ude80"
+      },
+      "position": [
+        208,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "0d9764ed-7c12-4268-a1c1-7b9c0c159e9e"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

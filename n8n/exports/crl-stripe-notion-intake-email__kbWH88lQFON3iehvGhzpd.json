@@ -1,0 +1,249 @@
+{
+  "active": true,
+  "connections": {
+    "Extract Customer Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Intake Email",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Create Client in Notion (API)",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Notify John (Telegram)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Is Payment?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Customer Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Is Payment?",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "kbWH88lQFON3iehvGhzpd",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL: Stripe \u2192 Notion + Intake Email",
+  "nodes": [
+    {
+      "id": "8567795d-9ce3-45c4-a3e7-a43c759ccdba",
+      "name": "Stripe Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "stripe-payment"
+      },
+      "position": [
+        -656,
+        112
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "acef3de3-9360-4dda-bcd9-6f2d36389713"
+    },
+    {
+      "id": "834699ce-ec4d-4736-aed4-86b7b4212dc9",
+      "name": "Is Payment?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-type",
+              "leftValue": "={{ $json.body.type }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "checkout.session.completed"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        -448,
+        112
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2
+    },
+    {
+      "id": "5d7fca23-1a33-4151-b396-73ba01f49695",
+      "name": "Extract Customer Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "customerName",
+              "type": "string",
+              "value": "={{ $json.body.data.object.customer_details.name || 'Unknown' }}"
+            },
+            {
+              "id": "email",
+              "name": "customerEmail",
+              "type": "string",
+              "value": "={{ $json.body.data.object.customer_details.email }}"
+            },
+            {
+              "id": "amount",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ $json.body.data.object.amount_total / 100 }}"
+            },
+            {
+              "id": "date",
+              "name": "paymentDate",
+              "type": "string",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        -224,
+        112
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "a3e656e1-738c-496c-9350-27cbdc02dd78",
+      "name": "Send Intake Email",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px;'><p>Hi {{ $json.customerName }},</p><p>Thanks for your payment! Your CyberReady Snapshot assessment is confirmed.</p><p><strong>Next step:</strong> Please complete this intake questionnaire:</p><p><a href='https://cyberreadylabs.com/contact' style='display: inline-block; background: #2E86AB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;'>Complete Intake Form \u2192</a></p><p>This should take 10-15 minutes. Once I receive your responses, I'll send a calendar link to schedule your 60-90 minute assessment session.</p><p>Your report and action plan will be delivered within 5 business days of our session.</p><p>Questions? Just reply to this email.</p><p>Best,<br>John Codis<br>CyberReadyLabs</p></div>",
+        "subject": "Your CyberReadyLabs Snapshot \u2014 complete your intake form",
+        "toEmail": "={{ $json.customerEmail }}"
+      },
+      "position": [
+        0,
+        224
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "2f50e4d1-2fcb-4244-8474-b8b5170defa2"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "9b473fab-67e3-4f02-a49f-859339a71b28",
+      "name": "Notify John (Telegram)",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83d\udcb0 New Snapshot Payment!\n\nClient: {{ $json.customerName }}\nEmail: {{ $json.customerEmail }}\nAmount: ${{ $json.amount }}\n\nIntake email sent automatically. Client page created in Notion."
+      },
+      "position": [
+        224,
+        112
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "d0eb888d-38ed-4a48-b4f6-74edcc74475d"
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "http-notion-create",
+      "name": "Create Client in Notion (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.customerName } }] }, 'Contact Email': { email: $json.customerEmail }, 'Service Tier': { select: { name: 'Snapshot Only' } }, 'Status': { select: { name: 'Snapshot In Progress' } }, 'Source': { select: { name: 'Website' } }, 'Start Date': { date: { start: $json.paymentDate } } } } }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {
+    "Extract Customer Data": [
+      {
+        "json": {
+          "amount": 1200,
+          "customerEmail": "jcodis@gmail.com",
+          "customerName": "Test Company LLC",
+          "paymentDate": "2026-02-18"
+        }
+      }
+    ]
+  },
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "Client Ops",
+    "CyberReadyLabs"
+  ]
+}

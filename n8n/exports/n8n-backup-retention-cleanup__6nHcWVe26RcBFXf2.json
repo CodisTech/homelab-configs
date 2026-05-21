@@ -1,0 +1,283 @@
+{
+  "active": true,
+  "connections": {
+    "Apply Retention Policy": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Files to Delete?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Delete Old Backup": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Cleanup Report",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Files to Delete?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Split Files to Delete",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Cleanup Report",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Backup Files": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Apply Retention Policy",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Backup Files",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Split Files to Delete": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Delete Old Backup",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Weekly Cleanup (Sunday 3 AM)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Backup Files",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "6nHcWVe26RcBFXf2",
+  "isArchived": false,
+  "meta": null,
+  "name": "n8n Backup Retention Cleanup",
+  "nodes": [
+    {
+      "id": "cleanup-trigger",
+      "name": "Weekly Cleanup (Sunday 3 AM)",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 3 * * 0",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "cleanup-manual",
+      "name": "Manual Trigger",
+      "parameters": {},
+      "position": [
+        0,
+        160
+      ],
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "list-backups",
+      "name": "List Backup Files",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/CODISTECH/HomeLab/backups"
+      },
+      "position": [
+        280,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "apply-retention",
+      "name": "Apply Retention Policy",
+      "parameters": {
+        "jsCode": "const xml = $input.first().json.data;\nconst now = new Date();\n\n// Parse file list from WebDAV XML\nconst filePattern = /<d:href>([^<]+)<\\/d:href>/gi;\nconst files = [];\nlet match;\n\nwhile ((match = filePattern.exec(xml)) !== null) {\n  const href = decodeURIComponent(match[1]);\n  if (href.match(/n8n_backup.*\\.json$/i)) {\n    const fileName = href.split('/').pop();\n    files.push(fileName);\n  }\n}\n\n// Parse dates from filenames\nconst backups = files.map(f => {\n  const dateMatch = f.match(/n8n_backup_(\\d{4}-\\d{2}-\\d{2})/);\n  if (!dateMatch) return null;\n  return {\n    fileName: f,\n    date: new Date(dateMatch[1]),\n    isBaseline: f.includes('BASELINE'),\n    isWeekly: f.includes('WEEKLY'),\n    isMonthly: f.includes('MONTHLY'),\n    isYearly: f.includes('YEARLY')\n  };\n}).filter(b => b !== null);\n\n// Retention rules\nconst sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);\nconst thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);\nconst oneYearAgo = new Date(now - 365 * 24 * 60 * 60 * 1000);\n\nconst toKeep = [];\nconst toDelete = [];\n\n// Group by week and month for retention\nconst weeklyKeepers = new Map(); // week key -> newest backup\nconst monthlyKeepers = new Map(); // month key -> newest backup\n\nfor (const backup of backups) {\n  // Always keep special backups\n  if (backup.isBaseline || backup.isWeekly || backup.isMonthly || backup.isYearly) {\n    toKeep.push({ ...backup, reason: 'special' });\n    continue;\n  }\n  \n  // Keep all from last 7 days\n  if (backup.date >= sevenDaysAgo) {\n    toKeep.push({ ...backup, reason: 'recent (< 7 days)' });\n    continue;\n  }\n  \n  // For 7-30 days: keep one per week\n  if (backup.date >= thirtyDaysAgo) {\n    const weekKey = `${backup.date.getFullYear()}-W${Math.ceil((backup.date - new Date(backup.date.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000))}`;\n    if (!weeklyKeepers.has(weekKey) || backup.date > weeklyKeepers.get(weekKey).date) {\n      weeklyKeepers.set(weekKey, backup);\n    }\n    continue;\n  }\n  \n  // For 30-365 days: keep one per month  \n  if (backup.date >= oneYearAgo) {\n    const monthKey = `${backup.date.getFullYear()}-${backup.date.getMonth()}`;\n    if (!monthlyKeepers.has(monthKey) || backup.date > monthlyKeepers.get(monthKey).date) {\n      monthlyKeepers.set(monthKey, backup);\n    }\n    continue;\n  }\n  \n  // Older than 1 year: delete (we'll keep yearly separately)\n  toDelete.push({ ...backup, reason: 'older than 1 year' });\n}\n\n// Add weekly and monthly keepers\nfor (const [week, backup] of weeklyKeepers) {\n  toKeep.push({ ...backup, reason: `weekly keeper (${week})` });\n}\nfor (const [month, backup] of monthlyKeepers) {\n  toKeep.push({ ...backup, reason: `monthly keeper (${month})` });\n}\n\n// Find files to delete (those not in toKeep)\nconst keepFileNames = new Set(toKeep.map(b => b.fileName));\nfor (const backup of backups) {\n  if (!keepFileNames.has(backup.fileName) && !toDelete.find(d => d.fileName === backup.fileName)) {\n    toDelete.push({ ...backup, reason: 'not needed for retention' });\n  }\n}\n\nreturn [{\n  json: {\n    totalBackups: backups.length,\n    keeping: toKeep.length,\n    deleting: toDelete.length,\n    toDelete: toDelete.map(b => b.fileName),\n    summary: `Found ${backups.length} backups. Keeping ${toKeep.length}, deleting ${toDelete.length}.`\n  }\n}];"
+      },
+      "position": [
+        520,
+        80
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "check-deletions",
+      "name": "Has Files to Delete?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "check-delete",
+              "leftValue": "={{ $json.deleting }}",
+              "operator": {
+                "operation": "gt",
+                "type": "number"
+              },
+              "rightValue": 0
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        760,
+        80
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
+    },
+    {
+      "id": "split-files",
+      "name": "Split Files to Delete",
+      "parameters": {
+        "jsCode": "const toDelete = $input.first().json.toDelete || [];\nreturn toDelete.map(fileName => ({ json: { fileName } }));"
+      },
+      "position": [
+        1000,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "delete-file",
+      "name": "Delete Old Backup",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "method": "DELETE",
+        "options": {},
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav/CODISTECH/HomeLab/backups/{{ $json.fileName }}"
+      },
+      "position": [
+        1240,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "LinkedIn"
+        }
+      },
+      "id": "notify-cleanup",
+      "name": "Send Cleanup Report",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        },
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83e\uddf9 *n8n Backup Cleanup*\n\n{{ $json.summary }}\n\n{{ $json.deleting > 0 ? 'Deleted: ' + $json.toDelete.join(', ') : 'No files deleted.' }}"
+      },
+      "position": [
+        1000,
+        200
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Weekly Cleanup (Sunday 3 AM)": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}

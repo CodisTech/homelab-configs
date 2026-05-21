@@ -1,0 +1,12 @@
+[Unit]
+Description=Francis — fire Wazuh daily summary export
+Documentation=https://git.local.example.home/john/homelab-configs (n8n/workflows/francis)
+
+[Timer]
+# Fire at 06:45 America/New_York daily — just before the n8n Francis
+# workflow at 07:00 America/New_York. Local timezone follows DST.
+OnCalendar=*-*-* 06:45:00 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target

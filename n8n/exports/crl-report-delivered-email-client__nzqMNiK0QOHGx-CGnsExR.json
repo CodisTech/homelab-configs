@@ -1,0 +1,285 @@
+{
+  "active": true,
+  "connections": {
+    "Extract Client Info": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Email?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Get Delivered Clients (API)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Client Info",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Report Email",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Notion Status Change Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get Delivered Clients (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Poll Every 15 Min (Alternative)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Get Delivered Clients (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Send Report Email": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify John (Telegram)",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "nzqMNiK0QOHGx-CGnsExR",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL: Report Delivered \u2192 Email Client",
+  "nodes": [
+    {
+      "id": "ad9ccff9-40e6-452f-ab45-f7d5d33d971f",
+      "name": "Notion Status Change Webhook",
+      "notes": "Notion doesn't have native webhooks. Two options:\n1. Use n8n Schedule Trigger to poll Notion every 15 min for status changes\n2. Use Notion's automations to call this webhook when status changes\n\nSee POLLING_ALTERNATIVE node below.",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "notion-status-change"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "8fcfb169-3f32-4c63-9078-ce306c0e96ae"
+    },
+    {
+      "disabled": true,
+      "id": "a2b56864-c9c4-43cb-ad93-f6848c04426d",
+      "name": "Poll Every 15 Min (Alternative)",
+      "notes": "Enable this and disable the webhook if you prefer polling. This checks Notion every 15 min for clients with Status = 'Snapshot Delivered' that haven't been emailed yet.",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        208
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "918bfc46-ce25-4446-b3f8-37a7dad43918",
+      "name": "Extract Client Info",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "clientName",
+              "type": "string",
+              "value": "={{ $json.properties['Company Name'].title[0].plain_text || 'Client' }}"
+            },
+            {
+              "id": "email",
+              "name": "clientEmail",
+              "type": "string",
+              "value": "={{ $json.properties['Contact Email'].email || '' }}"
+            },
+            {
+              "id": "company",
+              "name": "companyName",
+              "type": "string",
+              "value": "={{ $json.properties['Company Name'].title[0].plain_text || '' }}"
+            },
+            {
+              "id": "pageId",
+              "name": "notionPageId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        448,
+        208
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "id": "bfd9a2b8-defe-4e61-ab29-7ccc47c87bcf",
+      "name": "Has Email?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "has-email",
+              "leftValue": "={{ $json.clientEmail }}",
+              "operator": {
+                "operation": "notEquals",
+                "type": "string"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        672,
+        208
+      ],
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "25ca9912-0f97-44bf-a221-658c2b04c4a7",
+      "name": "Send Report Email",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px;'><p>Hi {{ $json.clientName.split(' ')[0] }},</p><p>Your CyberReady Snapshot report is complete. Here's what's included:</p><ul><li><strong>Executive Summary</strong> \u2014 Key findings at a glance</li><li><strong>Detailed Findings</strong> \u2014 Each risk with severity, impact, and context</li><li><strong>30/90-Day Action Plan</strong> \u2014 Prioritized steps to improve your security posture</li><li><strong>Risk Register</strong> \u2014 Track and manage findings over time</li></ul><p>I'll be sending the report separately as a PDF. If you have any questions after reviewing it, I'm happy to schedule a 15-minute follow-up call at no charge.</p><p><strong>What's Next?</strong></p><p>Many organizations find ongoing advisory support valuable after their Snapshot. Our CyberReady Guard retainer gives you a dedicated cybersecurity advisor on call:</p><ul><li><strong>Tier 1 ($1,500/mo):</strong> Monthly progress call + async support</li><li><strong>Tier 2 ($2,500-3,000/mo):</strong> Bi-monthly calls + tactical reviews</li></ul><p>No pressure \u2014 I'll follow up in a week to see if you have questions about the report.</p><p>Best,<br>John Codis, CISSP, CCSP<br>Founder, CyberReadyLabs<br><a href='https://cyberreadylabs.com'>cyberreadylabs.com</a></p></div>",
+        "options": {},
+        "subject": "Your CyberReady Snapshot Report Is Ready",
+        "toEmail": "={{ $json.clientEmail }}"
+      },
+      "position": [
+        880,
+        208
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "7c06c597-6f3f-46b9-bb1d-8609732e45e6"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "abf05ef2-f2a9-49b1-a1f2-080af2cbff72",
+      "name": "Notify John (Telegram)",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83d\udce7 Report delivery email sent!\n\nClient: {{ $json.clientName }}\nCompany: {{ $json.companyName }}\nEmail: {{ $json.clientEmail }}\n\nReminder: Send the actual PDF separately. Set a 7-day follow-up reminder."
+      },
+      "position": [
+        1104,
+        208
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "79bd1dfa-e8ce-4b0e-bd9a-7ed92fc4adba"
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "get-delivered-api",
+      "name": "Get Delivered Clients (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { filter: { property: 'Status', select: { equals: 'Snapshot Complete' } }, page_size: 10 } }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/databases/90720d68ecdf4be78ff76feddd9eff58/query"
+      },
+      "position": [
+        224,
+        208
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "Client Ops",
+    "CyberReadyLabs"
+  ]
+}

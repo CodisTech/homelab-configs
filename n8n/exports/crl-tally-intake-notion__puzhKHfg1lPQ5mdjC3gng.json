@@ -1,0 +1,264 @@
+{
+  "active": true,
+  "connections": {
+    "Extract Tally Responses": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Find Client in Notion (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Find Client in Notion (API)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prepare Update Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prepare Update Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Update Client in Notion (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Tally Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Tally Responses",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update Client in Notion (API)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify John (Telegram)",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "puzhKHfg1lPQ5mdjC3gng",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL: Tally Intake \u2192 Notion",
+  "nodes": [
+    {
+      "id": "bda2000e-3347-4ef0-b199-c26868220bc5",
+      "name": "Tally Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "tally-intake"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "284b5241-ab6c-451f-88bf-e16424b42bd5"
+    },
+    {
+      "id": "19731eea-5eae-49cf-9c1d-9cd585881156",
+      "name": "Extract Tally Responses",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "respondentName",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Name') || {}).value || ($json.body.data.fields.find(f => f.label === 'Full Name') || {}).value || 'Unknown' }}"
+            },
+            {
+              "id": "email",
+              "name": "respondentEmail",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Email') || {}).value || ($json.body.data.fields.find(f => f.label === 'Work Email') || {}).value || '' }}"
+            },
+            {
+              "id": "company",
+              "name": "companyName",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Company') || {}).value || ($json.body.data.fields.find(f => f.label === 'Organization') || {}).value || '' }}"
+            },
+            {
+              "id": "responses",
+              "name": "allResponses",
+              "type": "string",
+              "value": "={{ $json.body.data.fields.map(f => f.label + ': ' + (f.value || (f.options || []).map(o => o.text).join(', ') || 'N/A')).join('\\n') }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        224,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "d9c3e72e-db14-4883-b901-16c1f34fa914",
+      "name": "Notify John (Telegram)",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83d\udccb Intake Form Received!\n\nClient: {{ $('Extract Tally Responses').item.json.respondentName }}\nCompany: {{ $('Extract Tally Responses').item.json.companyName }}\nEmail: {{ $('Extract Tally Responses').item.json.respondentEmail }}\n\nNotion page updated. Schedule the assessment session."
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "fd119527-3849-4562-a73b-1c458f7a3ac2"
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "08d6ac66-5b0d-4985-b602-7b7663b3b70f",
+      "name": "Update Client in Notion (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { properties: { 'Primary Contact': { rich_text: [{ text: { content: $json.contactName } }] }, 'Notes': { rich_text: [{ text: { content: $json.notes } }] }, 'Status': { select: { name: 'Intake Complete' } } } } }}",
+        "method": "PATCH",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "find-client-api",
+      "name": "Find Client in Notion (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { filter: { property: 'Contact Email', email: { equals: $json.respondentEmail } } } }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/databases/90720d68ecdf4be78ff76feddd9eff58/query"
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "prepare-update",
+      "name": "Prepare Update Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "pageId",
+              "name": "pageId",
+              "type": "string",
+              "value": "={{ $json.results[0].id }}"
+            },
+            {
+              "id": "contactName",
+              "name": "contactName",
+              "type": "string",
+              "value": "={{ $('Extract Tally Responses').item.json.respondentName }}"
+            },
+            {
+              "id": "notes",
+              "name": "notes",
+              "type": "string",
+              "value": "={{ $('Extract Tally Responses').item.json.allResponses }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        560,
+        0
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "Client Ops",
+    "CyberReadyLabs"
+  ]
+}

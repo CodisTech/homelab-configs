@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily Immich postgres pg_dumpall to NFS (coherent with restic photo backup)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/immich-db-backup.sh
+TimeoutStartSec=600
+Nice=10
+StandardOutput=journal
+StandardError=journal

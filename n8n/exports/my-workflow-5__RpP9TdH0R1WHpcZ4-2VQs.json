@@ -1,0 +1,502 @@
+{
+  "active": false,
+  "connections": {
+    "Check if Approved": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save Approved Post",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Send Rejection Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract File Content",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract File Content": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Generate LinkedIn Post (Claude)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Generated Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram Approval Request",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch RSS & Extract Topics": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Select Document (Intelligent)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post (Claude)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Generated Post",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List Files in Selected Folder": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse & Select File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Mark Document as Used": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Success Notification",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse & Select File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save Approved Post": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Mark Document as Used",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Mon & Wed 8PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fetch RSS & Extract Topics",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Select Document (Intelligent)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List Files in Selected Folder",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait for User Decision": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check if Approved",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "RpP9TdH0R1WHpcZ4-2VQs",
+  "isArchived": true,
+  "meta": null,
+  "name": "My workflow 5",
+  "nodes": [
+    {
+      "id": "d6b55ecb-3a74-49b0-af2c-2a4266ef85e3",
+      "name": "Schedule: Mon & Wed 8PM",
+      "notes": "Triggers every Monday and Wednesday at 8:00 PM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 20 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -2208,
+        112
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1
+    },
+    {
+      "id": "3110fbee-01a2-4966-8661-9218007354a7",
+      "name": "Fetch RSS & Extract Topics",
+      "notes": "Fetches RSS feeds from cybersecurity sources and extracts trending topics",
+      "parameters": {
+        "jsCode": "// Fetch RSS feeds and extract trending topics\nconst feeds = [\n  { name: 'CISA', url: 'https://www.cisa.gov/cybersecurity-advisories/all.xml' },\n  { name: 'Dark Reading', url: 'https://www.darkreading.com/rss.xml' },\n  { name: 'Krebs', url: 'https://krebsonsecurity.com/feed/' },\n  { name: 'Bleeping Computer', url: 'https://www.bleepingcomputer.com/feed/' }\n];\n\nconst results = [];\n\nfor (const feed of feeds) {\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: feed.url,\n      timeout: 10000\n    });\n    \n    // Extract titles from RSS (basic XML parsing)\n    const titleMatches = response.match(/<title><!\\[CDATA\\[([^\\]]+)\\]\\]><\\/title>|<title>([^<]+)<\\/title>/gi) || [];\n    \n    const titles = titleMatches\n      .map(t => t.replace(/<\\/?title>|<!\\[CDATA\\[|\\]\\]>/gi, '').trim())\n      .filter(t => t.length > 10)\n      .slice(0, 10); // Top 10 from each feed\n    \n    results.push(...titles.map(title => ({\n      feed: feed.name,\n      title,\n      timestamp: new Date().toISOString()\n    })));\n  } catch (error) {\n    console.log(`Failed to fetch ${feed.name}: ${error.message}`);\n  }\n}\n\nconsole.log(`Fetched ${results.length} total RSS items`);\n\n// Extract trending keywords/topics\nconst keywords = [];\nconst topicPatterns = [\n  /breach/i, /hack/i, /vulnerability/i, /ransomware/i,\n  /zero.trust/i, /compliance/i, /HIPAA/i, /audit/i,\n  /IoT/i, /privacy/i, /social.media/i, /healthcare/i,\n  /identity/i, /IAM/i, /authentication/i\n];\n\nfor (const item of results) {\n  for (const pattern of topicPatterns) {\n    if (pattern.test(item.title)) {\n      const match = item.title.match(pattern)[0].toLowerCase();\n      keywords.push(match);\n    }\n  }\n}\n\n// Count keyword frequency\nconst keywordCount = {};\nkeywords.forEach(k => {\n  keywordCount[k] = (keywordCount[k] || 0) + 1;\n});\n\n// Sort by frequency\nconst trending = Object.entries(keywordCount)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([keyword, count]) => ({ keyword, count }));\n\nconsole.log('Trending topics:', trending);\n\nreturn {\n  rssItems: results,\n  trendingTopics: trending,\n  topKeywords: trending.map(t => t.keyword)\n};"
+      },
+      "position": [
+        -1984,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "618d9141-424c-4d0a-8f87-419cd5f14f43",
+      "name": "Select Document (Intelligent)",
+      "notes": "Matches trending topics with available documents, selects best match",
+      "parameters": {
+        "jsCode": "// Available documents (from your Nextcloud structure)\nconst documents = [\n  { folder: '11JUN25_Bridging_Gap', path: '/Personal/LinkedIn/2025/11JUN25_Bridging_Gap', keywords: ['bridging', 'gap', 'communication', 'skills'], topics: ['skills gap', 'communication', 'knowledge transfer'] },\n  { folder: '15JUN25_IAM', path: '/Personal/LinkedIn/2025/15JUN25_IAM', keywords: ['iam', 'identity', 'access', 'management'], topics: ['identity management', 'access control', 'authentication'] },\n  { folder: '18JUN25_Think_Like_Client', path: '/Personal/LinkedIn/2025/18JUN25_Think_Like_Client', keywords: ['client', 'thinking', 'perspective'], topics: ['client perspective', 'service delivery', 'customer focus'] },\n  { folder: '24JUN25_Automating_ZERO_TRUST_Health', path: '/Personal/LinkedIn/2025/24JUN25_Automating_ZERO_TRUST_Health', keywords: ['automation', 'zero', 'trust', 'health'], topics: ['zero trust', 'automation', 'security architecture'] },\n  { folder: '28JUN25_HOMELAB', path: '/Personal/LinkedIn/2025/28JUN25_HOMELAB', keywords: ['homelab', 'infrastructure', 'self-hosting'], topics: ['home lab', 'infrastructure', 'hands-on learning'] },\n  { folder: '21JAN26_HealthCare_Breach', path: '/Personal/LinkedIn/2026/21JAN26_HealthCare_Breach', keywords: ['healthcare', 'breach', 'hipaa', 'medical'], topics: ['healthcare security', 'data breach', 'HIPAA compliance'] },\n  { folder: '23JAN26_Audit_Failure', path: '/Personal/LinkedIn/2026/23JAN26_Audit_Failure', keywords: ['audit', 'failure', 'compliance', 'assessment'], topics: ['compliance audit', 'audit failure', 'risk assessment'] },\n  { folder: '27JAN26_Social_Media', path: '/Personal/LinkedIn/2026/27JAN26_Social_Media', keywords: ['social', 'media', 'engineering', 'security'], topics: ['social media', 'social engineering', 'human factor'] },\n  { folder: '29JAN26_IOT_Privacy', path: '/Personal/LinkedIn/2026/29JAN26_IOT_Privacy', keywords: ['iot', 'privacy', 'devices', 'security'], topics: ['IoT security', 'privacy', 'device security'] }\n];\n\n// Get trending keywords from previous node\nconst trendingKeywords = $json.topKeywords || [];\nconsole.log('Trending keywords:', trendingKeywords);\n\n// Check processed files to avoid reusing\nconst processedFile = '/Personal/LinkedIn/processed_files.txt';\nlet processedDocs = [];\n\ntry {\n  // Read processed files list from Nextcloud\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://nextcloud.local.example.home' + processedFile,\n    auth: {\n      username: $credentials.httpBasicAuth.user,\n      password: $credentials.httpBasicAuth.password\n    },\n    skipSslCertificateValidation: true\n  });\n  processedDocs = response.split('\\n').filter(l => l.trim());\n  console.log(`Found ${processedDocs.length} previously processed documents`);\n} catch (error) {\n  console.log('No processed_files.txt found or error reading it, starting fresh');\n}\n\n// Filter out already processed documents\nconst availableDocs = documents.filter(doc => \n  !processedDocs.includes(doc.folder)\n);\n\nconsole.log(`${availableDocs.length} documents available for processing`);\n\nif (availableDocs.length === 0) {\n  throw new Error('All documents have been processed! Please add new content or reset processed_files.txt');\n}\n\n// Score documents based on keyword match with trending topics\nconst scoredDocs = availableDocs.map(doc => {\n  let score = 0;\n  let matchedKeywords = [];\n  \n  for (const trending of trendingKeywords) {\n    const trendingLower = trending.toLowerCase();\n    \n    // Check if any doc keyword matches trending\n    for (const docKeyword of doc.keywords) {\n      if (docKeyword.includes(trendingLower) || trendingLower.includes(docKeyword)) {\n        score += 10;\n        matchedKeywords.push(trending);\n      }\n    }\n    \n    // Check topics\n    for (const topic of doc.topics) {\n      if (topic.toLowerCase().includes(trendingLower) || trendingLower.includes(topic.toLowerCase())) {\n        score += 5;\n        matchedKeywords.push(trending);\n      }\n    }\n  }\n  \n  return {\n    ...doc,\n    relevanceScore: score,\n    matchedKeywords: [...new Set(matchedKeywords)]\n  };\n});\n\n// Sort by relevance score (highest first)\nscoredDocs.sort((a, b) => b.relevanceScore - a.relevanceScore);\n\n// Select the best match, or random if no good match\nlet selectedDoc;\nif (scoredDocs[0].relevanceScore > 0) {\n  selectedDoc = scoredDocs[0];\n  console.log(`Selected TRENDING document: ${selectedDoc.folder} (score: ${selectedDoc.relevanceScore})`);\n} else {\n  // No trending match, select randomly from available\n  selectedDoc = availableDocs[Math.floor(Math.random() * availableDocs.length)];\n  selectedDoc.relevanceScore = 0;\n  selectedDoc.matchedKeywords = [];\n  console.log(`Selected RANDOM document: ${selectedDoc.folder} (no trending match)`);\n}\n\nreturn {\n  ...selectedDoc,\n  trendingTopics: trendingKeywords,\n  availableCount: availableDocs.length,\n  selectionReason: selectedDoc.relevanceScore > 0 ? 'trending_match' : 'random_selection'\n};"
+      },
+      "position": [
+        -1760,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "d6c6ba34-07b1-41a1-bab7-5bce1d886a21",
+      "name": "List Files in Selected Folder",
+      "notes": "Lists all files in the selected document folder",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "1"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {},
+        "sendHeaders": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav{{$json.path}}"
+      },
+      "position": [
+        -1536,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "f7b167a6-1017-432f-a8fb-e6a215adfaab",
+      "name": "Parse & Select File",
+      "notes": "Extracts file list and selects first .md or .docx file",
+      "parameters": {
+        "jsCode": "// Parse XML and find first .md or .docx file\nconst xml = $input.item.json.data;\nconst responsePattern = /<d:response>([\\s\\S]*?)<\\/d:response>/g;\nconst files = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const responseBlock = match[1];\n  const hrefMatch = responseBlock.match(/<d:href>(.*?)<\\/d:href>/);\n  if (!hrefMatch) continue;\n  \n  const href = hrefMatch[1];\n  const isFolder = responseBlock.includes('<d:collection');\n  \n  if (!isFolder && (href.endsWith('.md') || href.endsWith('.docx'))) {\n    files.push(href);\n  }\n}\n\nif (files.length === 0) {\n  throw new Error('No .md or .docx files found in folder');\n}\n\n// Select first file\nconst selectedFile = files[0];\nconsole.log(`Selected file: ${selectedFile}`);\n\nreturn {\n  ...$json,\n  selectedFile,\n  downloadUrl: 'https://nextcloud.local.example.home' + selectedFile\n};"
+      },
+      "position": [
+        -1328,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "324d5717-2f13-4a28-a622-df264fd03e5d",
+      "name": "Download File",
+      "notes": "Downloads the selected file content (non-destructive, read-only)",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {},
+        "url": "={{$json.downloadUrl}}"
+      },
+      "position": [
+        -1104,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "8f93f6ec-274d-4967-bcc3-624fcabe77e3",
+      "name": "Extract File Content",
+      "notes": "Extracts text content from downloaded file",
+      "parameters": {
+        "jsCode": "// Extract file content (assuming text/markdown for now)\nconst fileContent = $input.item.binary?.data ? \n  Buffer.from($input.item.binary.data.data, 'base64').toString('utf-8') :\n  $input.item.json.data || '';\n\nif (!fileContent || fileContent.length < 50) {\n  throw new Error('File content is empty or too short');\n}\n\nconsole.log(`Extracted ${fileContent.length} characters of content`);\n\nreturn {\n  ...$json,\n  fileContent: fileContent.substring(0, 15000), // Limit to 15k chars for Claude\n  contentLength: fileContent.length\n};"
+      },
+      "position": [
+        -880,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "b4a174a9-d63f-4384-b1e2-bce06431c792",
+      "name": "Generate LinkedIn Post (Claude)",
+      "notes": "Uses Claude to transform content into engaging LinkedIn post",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 2000,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"You are a cybersecurity professional creating LinkedIn content.\\n\\n{{$json.matchedKeywords.length > 0 ? 'TRENDING TOPIC DETECTED: ' + $json.matchedKeywords.join(', ') + '\\\\n\\\\n' : ''}}Transform the following course content into an engaging LinkedIn post that:\\n1. Opens with a hook related to {{$json.matchedKeywords[0] || 'cybersecurity challenges'}}\\n2. Shares 2-3 key insights from the content\\n3. Includes practical advice for security professionals\\n4. Ends with a thought-provoking question\\n5. Uses appropriate LinkedIn formatting (no hashtags)\\n6. Keeps it under 1300 characters\\n\\nSource document: {{$json.folder}}\\n{{$json.matchedKeywords.length > 0 ? 'Explicitly reference the trending topic: ' + $json.matchedKeywords[0] : ''}}\\n\\nContent:\\n{{$json.fileContent}}\"\n    }\n  ]\n}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        -656,
+        112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "2889d225-aa6c-4ad8-8362-277030658d4e",
+      "name": "Extract Generated Post",
+      "notes": "Extracts the generated post text from Claude's API response",
+      "parameters": {
+        "jsCode": "// Extract the post content from Claude's response\nconst response = $json;\nconst postContent = response.content?.[0]?.text || '';\n\nif (!postContent) {\n  throw new Error('Claude did not return any content');\n}\n\nconsole.log(`Generated post: ${postContent.length} characters`);\n\nreturn {\n  ...$input.item.json,\n  generatedPost: postContent,\n  postLength: postContent.length,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "position": [
+        -448,
+        112
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "52246653-89c6-41bb-9b59-b12fb708712f",
+      "name": "Send Telegram Approval Request",
+      "notes": "Sends post to Telegram with Approve/Reject buttons",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\ud83d\udcdd *NEW LINKEDIN POST READY FOR REVIEW*\\n\\n\ud83d\udcc1 *Source:* {{$json.folder}}\\n{{$json.matchedKeywords?.length > 0 ? '\ud83d\udd25 *Trending Match:* ' + $json.matchedKeywords.join(', ') + '\\\\n' : ''}}{{$json.selectionReason === 'trending_match' ? '\u2728 *Selection:* Matched with current trending topics!' : '\ud83c\udfb2 *Selection:* Random (no trending match)'}}\\n\ud83d\udcca *Relevance Score:* {{$json.relevanceScore}}/50\\n\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n{{$json.generatedPost}}\\n\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n*Do you approve this post?*"
+      },
+      "position": [
+        -224,
+        112
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "approval-request-webhook"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "ccbcb53e-fe4c-4fe8-85ff-7220e587c2f7",
+      "name": "Wait for User Decision",
+      "notes": "Waits for user to click Approve or Reject button",
+      "parameters": {
+        "additionalFields": {},
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "webhookId": "approval-response-webhook"
+    },
+    {
+      "id": "334388d6-8696-4a1b-b34a-41b6f65af9a5",
+      "name": "Check if Approved",
+      "notes": "Routes to approved or rejected path",
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "operation": "equals",
+              "value1": "={{$json.callback_query?.data}}",
+              "value2": "approve_post"
+            }
+          ]
+        }
+      },
+      "position": [
+        224,
+        112
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "10aa0695-92ce-4f84-9cc0-fa1caae0b080",
+      "name": "Save Approved Post",
+      "notes": "Saves approved post to Published folder",
+      "parameters": {
+        "fileContent": "={{$('Extract Generated Post').item.json.generatedPost}}",
+        "path": "=/Personal/LinkedIn/Published/{{$now.format('YYYY-MM-DD')}}_{{$('Select Document (Intelligent)').item.json.folder}}.md"
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "7ba2bbff-b919-4bbe-baef-69cd247fb455",
+      "name": "Mark Document as Used",
+      "notes": "Adds folder to processed_files.txt to prevent reuse",
+      "parameters": {
+        "jsCode": "// Update processed_files.txt to mark document as used\nconst folder = $('Select Document (Intelligent)').item.json.folder;\nconst processedFile = '/Personal/LinkedIn/processed_files.txt';\n\ntry {\n  // Read current content\n  let currentContent = '';\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://nextcloud.local.example.home' + processedFile,\n      auth: {\n        username: $credentials.httpBasicAuth.user,\n        password: $credentials.httpBasicAuth.password\n      },\n      skipSslCertificateValidation: true\n    });\n    currentContent = response;\n  } catch (e) {\n    // File doesn't exist yet\n  }\n  \n  // Append new folder\n  const newContent = currentContent + '\\n' + folder;\n  \n  // Write back to Nextcloud\n  await this.helpers.httpRequest({\n    method: 'PUT',\n    url: 'https://nextcloud.local.example.home' + processedFile,\n    body: newContent,\n    auth: {\n      username: $credentials.httpBasicAuth.user,\n      password: $credentials.httpBasicAuth.password\n    },\n    skipSslCertificateValidation: true\n  });\n  \n  console.log(`Marked ${folder} as processed`);\n  return { success: true, folder, action: 'approved' };\n} catch (error) {\n  console.log('Error updating processed_files.txt:', error.message);\n  return { success: false, error: error.message };\n}"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "802b503b-e511-48d6-be7b-c055d7f076e0",
+      "name": "Send Success Notification",
+      "notes": "Confirms successful approval and save",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u2705 *POST APPROVED & SAVED*\\n\\nYour LinkedIn post has been saved to:\\n\ud83d\udcc2 /Personal/LinkedIn/Published/\\n\\n\ud83c\udf89 Ready to manually post to LinkedIn!\\n\\n*Document:* {{$('Select Document (Intelligent)').item.json.folder}}"
+      },
+      "position": [
+        880,
+        0
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "success-notification-webhook"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "b3faddc0-9f7b-4927-b804-0ed687d3db8c",
+      "name": "Send Rejection Notification",
+      "notes": "Confirms rejection, document stays available",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "text": "=\u274c *POST REJECTED*\\n\\nThe post was not approved.\\n\\n*Document:* {{$('Select Document (Intelligent)').item.json.folder}}\\n\\nThis document will remain available for future selection."
+      },
+      "position": [
+        448,
+        208
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "webhookId": "rejection-notification-webhook"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

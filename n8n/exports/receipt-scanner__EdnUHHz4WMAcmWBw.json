@@ -1,0 +1,459 @@
+{
+  "active": true,
+  "connections": {
+    "Check Confidence": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Low Confidence Alert",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Set Account",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Claude Vision API": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Convert to Base64": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Claude Vision API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Transaction": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Confirmation",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Photo?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Convert to Base64",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "No Photo Error",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Check Confidence",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Prepare Upload": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload to Nextcloud",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Set Account": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Prepare Upload",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Photo?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload to Nextcloud": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Transaction",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "EdnUHHz4WMAcmWBw",
+  "isArchived": false,
+  "meta": null,
+  "name": "Receipt Scanner",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "trigger",
+      "name": "Telegram Trigger",
+      "parameters": {
+        "additionalFields": {
+          "chatIds": "1290054454",
+          "download": true,
+          "imageSize": "large"
+        },
+        "updates": [
+          "message"
+        ]
+      },
+      "position": [
+        0,
+        304
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "1d5dee2e-09c3-4d5e-90d4-98f60fc6825e"
+    },
+    {
+      "id": "check-photo",
+      "name": "Has Photo?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "photo-check",
+              "leftValue": "={{ ($json.message.photo || []).length > 0 }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        224,
+        304
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "no-photo",
+      "name": "No Photo Error",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "Please send a photo of the receipt."
+      },
+      "position": [
+        448,
+        512
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "6a68935b-3580-4c21-8631-634bc5a6be9a"
+    },
+    {
+      "id": "to-base64",
+      "name": "Convert to Base64",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const bin = item.binary?.data;\n  \n  if (!bin) {\n    results.push({ json: { error: 'No image' } });\n    continue;\n  }\n  \n  // Get actual binary buffer using n8n helper\n  const buffer = await this.helpers.getBinaryDataBuffer(i, 'data');\n  const base64Data = buffer.toString('base64');\n  \n  // Check for caption from Telegram message\n  const caption = item.json.message?.caption || '';\n  const captionContext = caption ? `\\n\\nUser provided context: \"${caption}\"` : '';\n  \n  const body = {\n    model: 'claude-sonnet-4-20250514',\n    max_tokens: 1024,\n    messages: [{\n      role: 'user',\n      content: [\n        { type: 'image', source: { type: 'base64', media_type: bin.mimeType || 'image/jpeg', data: base64Data } },\n        { type: 'text', text: `Analyze this receipt image. Return ONLY valid JSON with these fields:\n- vendor (string): Store/business name\n- amount (number): Total amount\n- date (string): YYYY-MM-DD format\n- category (string): One of these EXACT values: \"Infrastructure\", \"Marketing\", \"Software & Subscriptions\", \"Professional Development\", \"Meals & Entertainment\", \"Travel & Mileage\", \"Office Supplies\", \"Legal & Professional Fees\", \"Other\"\n- description (string): Brief 2-5 word description\n- confidence (string): high/medium/low\n- is_personal (boolean): true if personal expense, false if business\n\nCategory guidance:\n- Infrastructure: domains, hosting, servers, Cloudflare, AWS\n- Marketing: business cards, ads, networking events\n- Software & Subscriptions: SaaS tools, licenses, subscriptions\n- Professional Development: certs, courses, training, tuition\n- Meals & Entertainment: restaurants, food, dining\n- Travel & Mileage: uber, lyft, flights, hotels, gas\n- Office Supplies: supplies, equipment, Amazon office items\n- Legal & Professional Fees: lawyers, accountants, CPAs\n- Other: anything that doesn't fit above${captionContext}` }\n      ]\n    }]\n  };\n  results.push({ json: { requestBody: JSON.stringify(body), chatId: item.json.message?.chat?.id, caption: caption } });\n}\n\nreturn results;"
+      },
+      "position": [
+        448,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "claude-api",
+      "name": "Claude Vision API",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "body": "={{ $json.requestBody }}",
+        "contentType": "raw",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "rawContentType": "application/json",
+        "sendBody": true,
+        "sendHeaders": true,
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        672,
+        304
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "id": "parse-claude",
+      "name": "Parse Response",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\nfor (const item of items) {\n  let text = item.json.content?.[0]?.text || '';\n  try {\n    text = text.replace(/```json\\n?|\\n?```/g, '').trim();\n    const parsed = JSON.parse(text);\n    parsed.amount = parseFloat(parsed.amount) || 0;\n    if (!parsed.vendor || !parsed.amount) parsed.confidence = 'low';\n    results.push({ json: parsed });\n  } catch (e) {\n    results.push({ json: { error: 'Parse failed', raw: text, confidence: 'low' } });\n  }\n}\nreturn results;"
+      },
+      "position": [
+        880,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "check-conf",
+      "name": "Check Confidence",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "low-conf",
+              "leftValue": "={{ $json.confidence }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "low"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [
+        1104,
+        304
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "low-conf-msg",
+      "name": "Low Confidence Alert",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Could not read receipt clearly. {{ $json.error || $json.vendor }}"
+      },
+      "position": [
+        1328,
+        512
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "431b0c1d-6b02-47b2-903f-0b00258e56cb"
+    },
+    {
+      "id": "set-account",
+      "name": "Set Account",
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  const d = item.json;\n  let account = 'Relay - Operating';\n  if (d.category && d.category.toLowerCase().includes('software')) account = 'Relay - Tools SaaS';\n  if (d.is_personal === true) account = 'Personal - John';\n  return { json: { ...d, sourceAccount: account } };\n});"
+      },
+      "position": [
+        1328,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hABKGzaZPdLNZlyH",
+          "name": "Fire Fly III PAT"
+        }
+      },
+      "id": "firefly-api",
+      "name": "Create Transaction",
+      "parameters": {
+        "authentication": "none",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiZWUyNDZiMjcxYWJmZWFjOTk2NjMxOGYyYTdiMWNhYjRhMTZhNDZmNzE0MjA3MTcyNGNkOGU5NjBiMGRlZDBhZDU3MjZmOTIxNzhhZGZjYWYiLCJpYXQiOjE3NzE0NTQ2MzAuNTEwNzc3LCJuYmYiOjE3NzE0NTQ2MzAuNTEwNzc5LCJleHAiOjE4MDI5OTA2MzAuNDkwNDMsInN1YiI6IjEiLCJzY29wZXMiOltdfQ.Ukx_XU3ysvXjEVZ9HEq8aNdcR-6Vs4vLi5rtzCb6GD0RzhKetGO-XoJD034MFdAKVCkoS1-HLzoE1iD5kgfPDQQbd33OSQccVEsVHbws9GSzu-9kSiuPZ1jK5ZYG8entXSA9mmcYTmm6425r2F1BHbQcyW3eOjAo06Pwth-spF-K5eKZIMX2HIdgXHQZC16zl1a_jkWfdSN8KKMU4JdYIiEXobbGp410lFXDrn8C3wrLSuCMwx2JSQXrQjtKeeXhepJ8iDWPdydd7lDQ70plhl0n1m6gs5WKulHecHGIQlAt-N4xsZgIUAt6QfoEWelBAnZY92rxW-mqxcbkiDIZb8vKy7lMnaR1M3_gS2D9XG-lzKDsKtZe9oT0jjqzQE2dkZdmnw18wFfkRHqIGciV4JcnDP7Q-TlLYGk9gZKtGSH7Um9TfOHtwyqIT7N3_hCXiLnf25AimkDnRan5TMVViMR8uhQM5Nt1XnOYfqkQ2mooURji0nc36hDtElhA1HGZGqfaeMU-aoRSMKgwnhU2_CzbfbhOU_BcG0nEe56RZHIUC34xzx9ey6_GGXObUb0XLulJn-LXw8s0w6fD17By3mewymjSbjfIah6x-GcjYF3yUYVg5u4MPRIVSY7wPh8v9XH0HbquPu717n3AeB31r9njTinHkTQoqLhvMPOykRc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ transactions: [{ type: 'withdrawal', date: $('Prepare Upload').item.json.date, amount: String($('Prepare Upload').item.json.amount), description: $('Prepare Upload').item.json.vendor + ' - ' + $('Prepare Upload').item.json.description, source_name: $('Prepare Upload').item.json.sourceAccount, destination_name: $('Prepare Upload').item.json.vendor, category_name: $('Prepare Upload').item.json.category, notes: 'Receipt: ' + $('Prepare Upload').item.json.nextcloudPath }] }) }}",
+        "method": "POST",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "http://firefly-iii:8080/api/v1/transactions"
+      },
+      "position": [
+        2000,
+        304
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "confirm-msg",
+      "name": "Send Confirmation",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Added ${{ $('Prepare Upload').item.json.amount }} at {{ $('Prepare Upload').item.json.vendor }} ({{ $('Prepare Upload').item.json.category }})\n\nReceipt saved: {{ $('Prepare Upload').item.json.nextcloudPath }}"
+      },
+      "position": [
+        2224,
+        304
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "37ee5215-6217-432b-bdfa-5a3db60c9ed6"
+    },
+    {
+      "id": "prep-upload",
+      "name": "Prepare Upload",
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst d = item.json;\n\n// Map Firefly III category to folder name (matching actual Nextcloud folders)\nfunction getCategoryFolder(category) {\n  const cat = (category || '').toLowerCase();\n  \n  if (cat.includes('infrastructure')) return 'Domains';\n  if (cat.includes('marketing')) return 'Marketing';\n  if (cat.includes('software') || cat.includes('subscription')) return 'Software';\n  if (cat.includes('professional development')) return 'Formation';\n  if (cat.includes('meals') || cat.includes('entertainment')) return 'Meals';\n  if (cat.includes('travel') || cat.includes('mileage')) return 'Travel';\n  if (cat.includes('office')) return 'Office';\n  if (cat.includes('legal') || cat.includes('professional fees')) return 'Professional_Services';\n  return 'Other';\n}\n\nconst categoryFolder = getCategoryFolder(d.category);\n\n// Build file path\nconst date = d.date;\nconst cleanVendor = d.vendor.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);\nconst amount = String(d.amount).replace('.', '_');\nconst fileName = `${date}_${cleanVendor}_${amount}.jpg`;\nconst folderPath = `/CODISTECH/Business/Business Vault/09_Receipts_&_Expenses/${categoryFolder}`;\nconst fullPath = `${folderPath}/${fileName}`;\n\n// Get the base64 image data from Convert to Base64 node\nconst convertNode = $('Convert to Base64').first();\nconst requestBody = JSON.parse(convertNode.json.requestBody);\nconst imageBase64 = requestBody.messages[0].content[0].source.data;\n\n// Convert base64 to binary data for upload\nconst imageBuffer = Buffer.from(imageBase64, 'base64');\nconst binaryData = await this.helpers.prepareBinaryData(imageBuffer, fileName, 'image/jpeg');\n\nreturn [{\n  json: {\n    ...d,\n    nextcloudPath: fullPath,\n    nextcloudFolder: folderPath,\n    categoryFolder: categoryFolder,\n    fileName: fileName\n  },\n  binary: {\n    data: binaryData\n  }\n}];"
+      },
+      "position": [
+        1552,
+        304
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "upload-nextcloud",
+      "name": "Upload to Nextcloud",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "contentType": "binaryData",
+        "genericAuthType": "httpBasicAuth",
+        "inputDataFieldName": "data",
+        "method": "PUT",
+        "options": {},
+        "sendBody": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav{{ $json.nextcloudPath }}"
+      },
+      "position": [
+        1776,
+        304
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

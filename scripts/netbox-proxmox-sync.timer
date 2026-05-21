@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily NetBox ↔ Proxmox sync
+Documentation=https://git.local.example.home/john/homelab-configs/src/branch/main/scripts/netbox-proxmox-sync.py
+
+[Timer]
+# Daily at 12:30 UTC — between Francis (12:00) and n8n-export (13:00).
+# Drift on this is low-stakes; once-daily is plenty.
+OnCalendar=*-*-* 12:30:00 UTC
+Persistent=true
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target
+# User-level unit: `systemctl --user enable --now netbox-proxmox-sync.timer`

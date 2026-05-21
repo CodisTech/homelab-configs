@@ -1,0 +1,230 @@
+{
+  "active": true,
+  "connections": {
+    "Assessment Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Lead Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Create Lead in Notion (API)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify John (Telegram)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Extract Lead Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Email Results to Lead",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Create Lead in Notion (API)",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "4U9hvcQS0OSAfkL4iNqMi",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "CRL: Assessment Lead Capture \u2192 Notion",
+  "nodes": [
+    {
+      "id": "e52b6add-d4f5-4243-9447-7562a267d694",
+      "name": "Assessment Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://cyberreadylabs.com"
+              }
+            ]
+          }
+        },
+        "path": "assessment-lead",
+        "responseData": "allEntries",
+        "responseMode": "onReceived"
+      },
+      "position": [
+        -448,
+        112
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "6c2acfbf-c319-49e7-bc38-f018fda7905a"
+    },
+    {
+      "id": "5efc9d2c-c601-48fb-b117-3e3f24e07bc1",
+      "name": "Extract Lead Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "leadName",
+              "type": "string",
+              "value": "={{ $json.body.name }}"
+            },
+            {
+              "id": "email",
+              "name": "leadEmail",
+              "type": "string",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "id": "company",
+              "name": "leadCompany",
+              "type": "string",
+              "value": "={{ $json.body.company || '' }}"
+            },
+            {
+              "id": "size",
+              "name": "orgSize",
+              "type": "string",
+              "value": "={{ $json.body.size || '' }}"
+            },
+            {
+              "id": "score",
+              "name": "overallScore",
+              "type": "number",
+              "value": "={{ $json.body.overallScore }}"
+            },
+            {
+              "id": "scores",
+              "name": "functionScores",
+              "type": "string",
+              "value": "={{ JSON.stringify($json.body.functionScores) }}"
+            },
+            {
+              "id": "gaps",
+              "name": "topGaps",
+              "type": "string",
+              "value": "={{ ($json.body.topGaps || []).join(', ') }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        -224,
+        112
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "43aab734-d4c1-455d-b947-c3891775c10b",
+      "name": "Email Results to Lead",
+      "parameters": {
+        "fromEmail": "john@cyberreadylabs.com",
+        "html": "=<div style='font-family: Arial, sans-serif; max-width: 600px;'><p>Hi {{ $json.leadName.split(' ')[0] }},</p><p>Thanks for completing the Cybersecurity Readiness Check on our site.</p><p><strong>Your Overall Score: {{ $json.overallScore }}%</strong></p><p>Based on your responses, here are the areas that need the most attention:</p><p style='color: #CC3333; font-weight: bold;'>{{ $json.topGaps }}</p><p>These gaps are common among organizations your size \u2014 and they're exactly what a <strong>CyberReady Snapshot</strong> is designed to address.</p><p>In a 60-90 minute session, I'll validate these findings, uncover hidden risks, and deliver a prioritized 30/90-day action plan tailored to your organization.</p><p><a href='https://cyberreadylabs.com/contact' style='display: inline-block; background: #2E86AB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;'>Schedule Your CyberReady Snapshot ($1,200) \u2192</a></p><p>No commitment required. Happy to answer any questions.</p><p>Best,<br>John Codis, CISSP, CCSP<br>Founder, CyberReadyLabs<br>cyberreadylabs.com</p></div>",
+        "options": {},
+        "subject": "Your Cybersecurity Readiness Results \u2014 CyberReadyLabs",
+        "toEmail": "={{ $json.leadEmail }}"
+      },
+      "position": [
+        0,
+        224
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "webhookId": "939fd304-d530-4e7f-893d-99475a9cfbfe"
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "cd2f0a12-a9aa-42b4-bc0f-500f78069a9a",
+      "name": "Notify John (Telegram)",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=\ud83c\udfaf New Assessment Lead!\n\nName: {{ $('Extract Lead Data').item.json.leadName }}\nEmail: {{ $('Extract Lead Data').item.json.leadEmail }}\nCompany: {{ $('Extract Lead Data').item.json.leadCompany }}\nOrg Size: {{ $('Extract Lead Data').item.json.orgSize }}\nScore: {{ $('Extract Lead Data').item.json.overallScore }}%\nTop Gaps: {{ $('Extract Lead Data').item.json.topGaps }}\n\nLead created in Notion. Results email sent."
+      },
+      "position": [
+        224,
+        112
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "webhookId": "160f9219-adaf-4b2f-8d03-e758779f23cc"
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "http-notion-lead",
+      "name": "Create Lead in Notion (API)",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ { parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.leadCompany || $json.leadName } }] }, 'Contact Email': { email: $json.leadEmail }, 'Primary Contact': { rich_text: [{ text: { content: $json.leadName } }] }, 'Source': { select: { name: 'Website' } }, 'Status': { select: { name: 'Lead' } }, 'Notes': { rich_text: [{ text: { content: 'Score: ' + $json.overallScore + '%\\nTop Gaps: ' + $json.topGaps + '\\nFunction Scores: ' + $json.functionScores } }] } } } }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "CyberReadyLabs",
+    "Lead Gen"
+  ]
+}

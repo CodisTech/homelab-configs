@@ -1,0 +1,10 @@
+[Unit]
+Description=Mirror live PVE VM state into NetBox (drift closer)
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/netbox-sync/env
+ExecStart=/usr/bin/python3 %h/work/repos/homelab-configs/scripts/netbox-proxmox-sync.py
+StandardOutput=journal
+StandardError=journal

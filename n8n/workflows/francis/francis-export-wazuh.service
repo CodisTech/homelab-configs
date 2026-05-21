@@ -1,0 +1,16 @@
+[Unit]
+Description=Francis — Wazuh daily summary export
+Documentation=https://git.local.example.home/john/homelab-configs (n8n/workflows/francis)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/francis-export-wazuh.py
+# Needs to read the docker volume (root-owned) and write the n8n bind path.
+User=root
+TimeoutStartSec=300
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

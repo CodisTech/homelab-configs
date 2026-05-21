@@ -1,0 +1,261 @@
+groups:
+  - name: node_alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 92
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 92% (true OOM territory once swap is exhausted)"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+
+      - alert: HostDown
+        expr: up{job=~"node-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host {{ $labels.instance }} is down"
+
+  - name: pihole_alerts
+    rules:
+      - alert: PiholeDown
+        expr: up{job="pihole"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pi-hole exporter is down"
+
+  - name: proxmox_alerts
+    rules:
+      - alert: ProxmoxVMDown
+        # Exclusions (added 2026-05-02):
+        #   qemu/109 on server-d = opnsense-dell stub, will not start until Dell rebuild
+        #   qemu/110 on server-c = opnsense-2 inactive HA partner, no failover yet
+        expr: |
+          pve_up{id=~"qemu/.*"} == 0
+            unless on(id) pve_guest_info{template="1"}
+            unless on(id, instance) pve_up{id="qemu/109", instance="10.0.60.8"}
+            unless on(id, instance) pve_up{id="qemu/110", instance="10.0.60.9"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Proxmox VM {{ $labels.id }} is down"
+          description: "VM appears down. Templates are excluded by the `unless` clause."
+
+      - alert: ProxmoxNodeDown
+        expr: pve_up{id=~"node/.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Proxmox node {{ $labels.id }} is down"
+
+  - name: service_alerts
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} is down"
+
+      - alert: CrowdsecHighBanCount
+        expr: sum(cs_active_decisions) > 20000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CrowdSec has many active bans"
+
+  - name: ssl_alerts 
+    rules:
+      - alert: SSLCertExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14 
+        for: 1h
+        labels: 
+          severity: warning
+        annotations:  
+          summary: "SSL cert expiring soon on {{ $labels.instance }}"
+          description: "Certificate expires in {{ $value | printf \"%.0f\" }} days"
+
+      - alert: SSLCertExpiryCritical
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7 
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "SSL cert expiring in < 7 days on {{ $labels.instance }}"
+          description: "Certificate expires in {{ $value | printf \"%.0f\" }} days"
+
+      - alert: SSLCertExpired
+        expr: probe_ssl_earliest_cert_expiry < time()
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SSL certificate EXPIRED on {{ $labels.instance }}"
+
+  - name: cert_manager_alerts
+    rules:
+      - alert: CertManagerCertificateNotReady
+        expr: certmanager_certificate_ready_status{condition="True"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "cert-manager Certificate not Ready: {{ $labels.namespace }}/{{ $labels.name }}"
+          description: "Certificate has been not-Ready for >10 min. Check Issuer status, ACME challenges, and DNS-01 propagation."
+
+      - alert: CertManagerCertificateExpiringSoon
+        expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cert {{ $labels.namespace }}/{{ $labels.name }} expires in {{ $value | printf \"%.0f\" }} days"
+          description: "Certificate expires within 14 days but renewal hasn't landed. Likely stuck — check cert-manager controller and ACME order."
+
+      - alert: CertManagerCertificateExpiringCritical
+        expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 7
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cert {{ $labels.namespace }}/{{ $labels.name }} expires in {{ $value | printf \"%.0f\" }} days — CRITICAL"
+          description: "Certificate expires within 7 days. Investigate immediately — TLS will start failing soon."
+
+  - name: k8s_state_alerts
+    rules:
+      - alert: PodCrashLooping
+        expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} crashlooping"
+          description: "Container {{ $labels.container }} has restarted >5 times in the last hour."
+
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{condition="false"} == 1 and on(namespace,pod) kube_pod_status_phase{phase="Running"} == 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} not Ready"
+          description: "Pod is in Running phase but not-Ready for >15 min. (Completed/Succeeded pods are excluded.)"
+
+      - alert: DeploymentReplicasMismatch
+        expr: kube_deployment_status_replicas_available != kube_deployment_spec_replicas
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replica mismatch"
+          description: "Available replicas ({{ $value }}) does not match desired for >15 min."
+
+      - alert: KubeNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "k3s node {{ $labels.node }} not Ready"
+          description: "Node has been not-Ready for >5 min — workloads may be evicted or unschedulable."
+
+      - alert: PVCPending
+        expr: kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} pending"
+          description: "PVC has been Pending for >15 min. Check storage class and provisioner (Longhorn) status."
+
+  - name: longhorn_alerts
+    rules:
+      - alert: LonghornVolumeDegraded
+        expr: longhorn_volume_robustness == 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Longhorn volume {{ $labels.volume }} degraded"
+          description: "Volume robustness=2 (degraded) for >10 min. Replica failure or rebuild in progress."
+
+      - alert: LonghornVolumeFaulted
+        expr: longhorn_volume_robustness == 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Longhorn volume {{ $labels.volume }} FAULTED — DATA AT RISK"
+          description: "Volume robustness=3 (faulted). All replicas unhealthy. Investigate immediately to prevent data loss."
+
+      - alert: LonghornNodeDown
+        expr: longhorn_node_status{condition="ready",status="false"} == 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Longhorn node {{ $labels.node }} not ready"
+          description: "Longhorn manager on node is not ready — replicas on this node are offline."
+
+      - alert: LonghornDiskUsageHigh
+        expr: (longhorn_disk_usage_bytes / longhorn_disk_capacity_bytes) * 100 > 85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Longhorn disk on {{ $labels.node }} >85% full"
+          description: "Disk usage on Longhorn node {{ $labels.node }} is above 85%. Plan capacity expansion or volume cleanup."
+  - name: watchdog
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: 'Heartbeat — pipeline alive'
+          description: 'Always-firing alert. If healthchecks.io stops getting pings, the alerting pipeline (Prometheus → Alertmanager → outbound webhook) is broken.'
+
+  - name: vault_alerts
+    rules:
+      - alert: VaultSealed
+        expr: vault_core_unsealed != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Vault is sealed (instance {{ $labels.instance }})'
+          description: 'vault_core_unsealed is not 1. Vault cannot serve secrets until unsealed. Check transit-seal source on VM 100.'
+
+      - alert: VaultDown
+        expr: up{job="vault"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Vault target down ({{ $labels.instance }})'
+          description: 'Prometheus cannot scrape Vault metrics endpoint. Pod restart, ingress issue, or DNS.'

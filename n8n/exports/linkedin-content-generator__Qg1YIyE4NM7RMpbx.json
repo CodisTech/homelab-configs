@@ -1,0 +1,641 @@
+{
+  "active": false,
+  "connections": {
+    "Build Claude Prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Call Claude API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Claude Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Source File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Build Claude Prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Tracking JSON": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Tracking Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Generate Image (DALL-E)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save Post JSON",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Has Unprocessed Files?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Source File",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Notify All Processed",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "List All Files (WebDAV)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Select Unprocessed File",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Claude Response": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Generate Image (DALL-E)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Tracking Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "List All Files (WebDAV)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save Content Text": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save Image",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save Image": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Update Tracking",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Save Post JSON": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Save Content Text",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule: Mon & Wed 6PM": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Tracking JSON",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Select Unprocessed File": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Has Unprocessed Files?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update Tracking": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload Tracking JSON",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload Tracking JSON": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Telegram Preview",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "Qg1YIyE4NM7RMpbx",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "LinkedIn Content Generator",
+  "nodes": [
+    {
+      "id": "fd63b4b2-75a7-430b-bb6a-ca816bffae34",
+      "name": "Schedule: Mon & Wed 6PM",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "expression": "0 18 * * 1,3",
+              "field": "cronExpression"
+            }
+          ]
+        }
+      },
+      "position": [
+        -80,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-000000000001",
+      "maxTries": 2,
+      "name": "Download Tracking JSON",
+      "parameters": {
+        "binaryPropertyName": "trackingFile",
+        "operation": "download",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        140,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a1000001-0000-0000-0000-000000000002",
+      "name": "Parse Tracking Data",
+      "parameters": {
+        "jsCode": "// Parse tracking.json from binary\nconst binaryData = $input.item.binary.trackingFile;\nlet trackingData;\n\ntry {\n  const rawContent = Buffer.from(binaryData.data, 'base64').toString('utf-8');\n  trackingData = JSON.parse(rawContent);\n} catch (e) {\n  trackingData = { processedFiles: [], lastUpdated: '' };\n}\n\nreturn [{ json: { tracking: trackingData } }];"
+      },
+      "position": [
+        360,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "d5add98e-871c-44bf-aa4c-b897f3dc9722",
+      "maxTries": 2,
+      "name": "List All Files (WebDAV)",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Depth",
+              "value": "infinity"
+            }
+          ]
+        },
+        "method": "PROPFIND",
+        "options": {},
+        "sendHeaders": true,
+        "url": "https://nextcloud.local.example.home/remote.php/webdav/GeorgeWashington/Classes"
+      },
+      "position": [
+        580,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a1000001-0000-0000-0000-000000000003",
+      "name": "Select Unprocessed File",
+      "parameters": {
+        "jsCode": "// Parse WebDAV XML response to find .md files, cross-reference with tracking\nconst xml = $input.item.json.data;\nconst tracking = $('Parse Tracking Data').item.json.tracking;\nconst processedPaths = tracking.processedFiles.map(f => f.sourcePath);\n\n// Extract all href entries from WebDAV response\nconst responsePattern = /<d:response>[\\s\\S]*?<d:href>([^<]+)<\\/d:href>[\\s\\S]*?<\\/d:response>/g;\nconst files = [];\nlet match;\n\nwhile ((match = responsePattern.exec(xml)) !== null) {\n  const href = decodeURIComponent(match[1]);\n  // Only include .md files (not directories)\n  if (href.endsWith('.md')) {\n    // Extract the path relative to webdav root\n    const pathMatch = href.match(/\\/remote\\.php\\/webdav\\/(.+)/);\n    if (pathMatch) {\n      const filePath = '/' + pathMatch[1];\n      if (!processedPaths.includes(filePath)) {\n        files.push(filePath);\n      }\n    }\n  }\n}\n\nif (files.length === 0) {\n  return [{ json: { hasFile: false, message: 'All source files have been processed' } }];\n}\n\n// Pick the first unprocessed file\nconst selectedFile = files[0];\nconst postId = 'post_' + Date.now();\n\nreturn [{ json: { hasFile: true, selectedFile, postId, remainingFiles: files.length } }];"
+      },
+      "position": [
+        800,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "a1000001-0000-0000-0000-000000000004",
+      "name": "Has Unprocessed Files?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.hasFile }}",
+              "operator": {
+                "operation": "true",
+                "type": "boolean"
+              },
+              "rightValue": ""
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        1020,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-000000000005",
+      "maxTries": 2,
+      "name": "Download Source File",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav{{ $json.selectedFile }}"
+      },
+      "position": [
+        1240,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a1000001-0000-0000-0000-000000000006",
+      "name": "Build Claude Prompt",
+      "parameters": {
+        "jsCode": "const sourceContent = $input.item.json.data;\nconst selectedFile = $('Select Unprocessed File').item.json.selectedFile;\nconst postId = $('Select Unprocessed File').item.json.postId;\n\nconst prompt = `You are a cybersecurity expert and professional educator who shares insights on LinkedIn. Your audience includes IT professionals, cybersecurity practitioners, students, and business leaders interested in security.\n\nAnalyze the following educational content and create a compelling LinkedIn post based on the most interesting or important concept from it.\n\nRules:\n- Write 150-300 words\n- Start with a strong hook (question, surprising fact, or bold statement)\n- Use plain text only - NO markdown formatting (no **, no ##, no bullet points with -)\n- Use line breaks to separate paragraphs\n- End with 3-5 relevant hashtags on their own line\n- Be professional but conversational\n- Include a call-to-action or thought-provoking question at the end\n- Make it actionable - readers should learn something useful\n\nAlso create a DALL-E image prompt for a professional, visually striking image that complements this post. The image should be suitable for LinkedIn - clean, modern, and professional. Do NOT include any text in the image.\n\nRespond in valid JSON format only, with this exact structure:\n{\n  \"postText\": \"the full LinkedIn post text including hashtags\",\n  \"imagePrompt\": \"detailed DALL-E prompt for a complementary professional image\",\n  \"hashtags\": [\"hashtag1\", \"hashtag2\", \"hashtag3\"],\n  \"topicSummary\": \"2-3 word summary of the topic\"\n}\n\nSource content:\n${sourceContent}`;\n\nreturn [{ json: { prompt, selectedFile, postId, sourceContent } }];"
+      },
+      "position": [
+        1460,
+        -120
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "anthropicApi": {
+          "id": "aiF3Dh0UHFVuhvmt",
+          "name": "Anthropic account"
+        }
+      },
+      "id": "f1023600-8fe9-42a2-af1e-c9df84d0fb56",
+      "maxTries": 2,
+      "name": "Call Claude API",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "method": "POST",
+        "nodeCredentialType": "anthropicApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.anthropic.com/v1/messages"
+      },
+      "position": [
+        1680,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a1000001-0000-0000-0000-000000000007",
+      "name": "Parse Claude Response",
+      "parameters": {
+        "jsCode": "const response = $input.item.json;\nconst selectedFile = $('Build Claude Prompt').item.json.selectedFile;\nconst postId = $('Build Claude Prompt').item.json.postId;\n\nlet claudeText = '';\nif (response.content && response.content.length > 0) {\n  claudeText = response.content[0].text;\n}\n\n// Extract JSON from Claude's response (handle markdown code blocks)\nlet parsed;\ntry {\n  // Try direct parse first\n  parsed = JSON.parse(claudeText);\n} catch (e) {\n  // Try extracting from code block\n  const jsonMatch = claudeText.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[1].trim());\n  } else {\n    // Try finding JSON object in text\n    const objMatch = claudeText.match(/\\{[\\s\\S]*\\}/);\n    if (objMatch) {\n      parsed = JSON.parse(objMatch[0]);\n    } else {\n      throw new Error('Could not parse Claude response as JSON: ' + claudeText.substring(0, 200));\n    }\n  }\n}\n\nreturn [{\n  json: {\n    postText: parsed.postText,\n    imagePrompt: parsed.imagePrompt,\n    hashtags: parsed.hashtags || [],\n    topicSummary: parsed.topicSummary || '',\n    selectedFile,\n    postId\n  }\n}];"
+      },
+      "position": [
+        1900,
+        -120
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "continueOnFail": false,
+      "credentials": {
+        "openAiApi": {
+          "id": "__OPENAI_CREDENTIAL__",
+          "name": "OpenAI API"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-000000000008",
+      "maxTries": 2,
+      "name": "Generate Image (DALL-E)",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "imageModel": "dall-e-3",
+        "operation": "create",
+        "options": {
+          "size": "1024x1024"
+        },
+        "prompt": "={{ $json.imagePrompt }}",
+        "resource": "image",
+        "responseFormat": "binaryData"
+      },
+      "position": [
+        2120,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-000000000009",
+      "maxTries": 2,
+      "name": "Save Post JSON",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ JSON.stringify({ postId: $('Parse Claude Response').item.json.postId, postText: $('Parse Claude Response').item.json.postText, imagePrompt: $('Parse Claude Response').item.json.imagePrompt, hashtags: $('Parse Claude Response').item.json.hashtags, topicSummary: $('Parse Claude Response').item.json.topicSummary, sourcePath: $('Parse Claude Response').item.json.selectedFile, createdAt: new Date().toISOString() }, null, 2) }}",
+        "operation": "upload",
+        "path": "=/Personal/LinkedIn/Pending_Review/{{ $('Parse Claude Response').item.json.postId }}/post.json"
+      },
+      "position": [
+        2340,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-00000000000a",
+      "name": "Save Content Text",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $('Parse Claude Response').item.json.postText }}",
+        "operation": "upload",
+        "path": "=/Personal/LinkedIn/Pending_Review/{{ $('Parse Claude Response').item.json.postId }}/content.txt"
+      },
+      "position": [
+        2560,
+        -120
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-00000000000b",
+      "name": "Save Image",
+      "parameters": {
+        "binaryDataUpload": true,
+        "binaryPropertyName": "data",
+        "operation": "upload",
+        "path": "=/Personal/LinkedIn/Pending_Review/{{ $('Parse Claude Response').item.json.postId }}/image.png"
+      },
+      "position": [
+        2780,
+        -120
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "a1000001-0000-0000-0000-00000000000c",
+      "name": "Update Tracking",
+      "parameters": {
+        "jsCode": "const tracking = $('Parse Tracking Data').item.json.tracking;\nconst postId = $('Parse Claude Response').item.json.postId;\nconst selectedFile = $('Parse Claude Response').item.json.selectedFile;\n\ntracking.processedFiles.push({\n  sourcePath: selectedFile,\n  processedDate: new Date().toISOString(),\n  postId: postId,\n  status: 'pending_review'\n});\ntracking.lastUpdated = new Date().toISOString();\n\nreturn [{ json: { trackingContent: JSON.stringify(tracking, null, 2), postId, selectedFile, postText: $('Parse Claude Response').item.json.postText } }];"
+      },
+      "position": [
+        3000,
+        -120
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-00000000000d",
+      "name": "Upload Tracking JSON",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $json.trackingContent }}",
+        "operation": "upload",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        3220,
+        -120
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-00000000000e",
+      "name": "Send Telegram Preview",
+      "parameters": {
+        "additionalFields": {
+          "parse_mode": "HTML"
+        },
+        "chatId": "1290054454",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "additionalFields": {
+                      "callback_data": "=approve_{{ $json.postId }}"
+                    },
+                    "text": "Approve"
+                  },
+                  {
+                    "additionalFields": {
+                      "callback_data": "=deny_{{ $json.postId }}"
+                    },
+                    "text": "Deny"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "operation": "sendMessage",
+        "replyMarkup": "inlineKeyboard",
+        "text": "=New LinkedIn Post Ready for Review!\n\nTopic: {{ $('Parse Claude Response').item.json.topicSummary }}\nSource: {{ $json.selectedFile }}\n\nPreview:\n{{ $json.postText.substring(0, 500) }}{{ $json.postText.length > 500 ? '...' : '' }}\n\nPost ID: {{ $json.postId }}"
+      },
+      "position": [
+        3440,
+        -120
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "a1000001-0000-0000-0000-00000000000f",
+      "name": "Notify All Processed",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "LinkedIn Content Generator: All source files have been processed. Add new .md files to the GeorgeWashington/Classes folder on Nextcloud to generate more posts."
+      },
+      "position": [
+        1240,
+        160
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

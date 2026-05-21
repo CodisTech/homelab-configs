@@ -1,0 +1,243 @@
+{
+  "active": true,
+  "connections": {
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Create Lead in Notion",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Notify Telegram",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Fetch PDF",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fetch PDF": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send Email with PDF",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "PaC Download Webhook": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Extract Data",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "0glxag6ylvdEFXW1",
+  "isArchived": false,
+  "meta": null,
+  "name": "CRL: PaC Playbook Download",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "PaC Download Webhook",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        },
+        "path": "pac-download",
+        "responseData": "allEntries",
+        "responseMode": "onReceived"
+      },
+      "position": [
+        0,
+        200
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "pac-download-webhook"
+    },
+    {
+      "id": "extract-data",
+      "name": "Extract Data",
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "name",
+              "name": "name",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Name') || {}).value || ($json.body.data.fields.find(f => f.label === 'Full Name') || {}).value || 'Unknown' }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Email') || {}).value || ($json.body.data.fields.find(f => f.type === 'INPUT_EMAIL') || {}).value || '' }}"
+            },
+            {
+              "id": "company",
+              "name": "company",
+              "type": "string",
+              "value": "={{ ($json.body.data.fields.find(f => f.label === 'Company') || {}).value || ($json.body.data.fields.find(f => f.label === 'Organization') || {}).value || '' }}"
+            },
+            {
+              "id": "employees",
+              "name": "employees",
+              "type": "string",
+              "value": "={{ (() => { const field = $json.body.data.fields.find(f => f.label === 'Employee Count'); if (!field) return ''; const selectedId = Array.isArray(field.value) ? field.value[0] : field.value; const option = (field.options || []).find(o => o.id === selectedId); return option ? option.text : (selectedId || ''); })() }}"
+            },
+            {
+              "id": "employeeCount",
+              "name": "employeeCount",
+              "type": "number",
+              "value": "={{ (() => { const field = $json.body.data.fields.find(f => f.label === 'Employee Count'); if (!field) return 10; const selectedId = Array.isArray(field.value) ? field.value[0] : field.value; const option = (field.options || []).find(o => o.id === selectedId); const text = option ? option.text : '10'; return parseInt(text.split('-').pop().replace('+', '').replace(/[^0-9]/g, '')) || 10; })() }}"
+            },
+            {
+              "id": "today",
+              "name": "today",
+              "type": "string",
+              "value": "={{ new Date().toISOString().split('T')[0] }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        220,
+        200
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "credentials": {
+        "notionApi": {
+          "id": "z06TNV1vaM1TZEVd",
+          "name": "CyberReadyLabs Notion"
+        }
+      },
+      "id": "create-notion",
+      "name": "Create Lead in Notion",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: '90720d68ecdf4be78ff76feddd9eff58' }, properties: { 'Company Name': { title: [{ text: { content: $json.company || 'Unknown' } }] }, 'Contact Email': { email: $json.email }, 'Employee Count': { number: $json.employeeCount }, 'Primary Contact': { rich_text: [{ text: { content: $json.name } }] }, 'Source': { select: { name: 'PaC Playbook' } }, 'Status': { select: { name: 'New Lead' } }, 'Start Date': { date: { start: $json.today } }, 'Notes': { rich_text: [{ text: { content: 'Downloaded Policy-as-Code Guide' } }] } } }) }}",
+        "method": "POST",
+        "nodeCredentialType": "notionApi",
+        "options": {},
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "url": "https://api.notion.com/v1/pages"
+      },
+      "position": [
+        460,
+        100
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "LTYb7jYlLEFdAZFv",
+          "name": "CyberReadyLabs Bot"
+        }
+      },
+      "id": "send-telegram",
+      "name": "Notify Telegram",
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "resource": "message",
+        "text": "=\ud83d\udce5 PLAYBOOK DOWNLOAD\n\nName: {{ $json.name }}\nCompany: {{ $json.company }}\nEmail: {{ $json.email }}\nEmployees: {{ $json.employees }}"
+      },
+      "position": [
+        460,
+        250
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2
+    },
+    {
+      "id": "fetch-pdf",
+      "name": "Fetch PDF",
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/pac-guide.pdf",
+        "operation": "read"
+      },
+      "position": [
+        460,
+        400
+      ],
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1
+    },
+    {
+      "credentials": {
+        "smtp": {
+          "id": "ER1Lygj9ODNjJzUA",
+          "name": "CyberReadyLabs Email"
+        }
+      },
+      "id": "send-email",
+      "name": "Send Email with PDF",
+      "parameters": {
+        "emailFormat": "html",
+        "fromEmail": "assess@cyberreadylabs.com",
+        "html": "=<div style='font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff'><div style='background:#1a365d;padding:35px 30px;text-align:center'><img src='https://cyberreadylabs.com/assets/img/logo.png' alt='CyberReadyLabs' style='height:45px;margin-bottom:12px'><h1 style='margin:0;color:#fff;font-size:26px;font-weight:700'>CyberReadyLabs</h1><div style='width:60px;height:2px;background:#D4A843;margin:12px auto'></div><p style='margin:0;color:#B0BEC5;font-size:13px'>Your Guide Is Ready</p></div><div style='padding:25px;background:#f8f9fa'><p style='color:#333;margin:0 0 12px'>Hi {{ $('Extract Data').first().json.name }},</p><p style='color:#333;margin:0 0 12px'>Thank you for downloading our Policy-as-Code Guide. The PDF is attached to this email.</p><p style='color:#333;margin:0 0 12px;font-size:14px'>Want to see where your organization stands? Take our free security assessment.</p><p style='text-align:center;margin:0 0 12px'><a href='https://cyberreadylabs.com/assess' style='display:inline-block;background:#D4A843;color:#fff;padding:10px 24px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px'>Take Our Free Assessment</a></p><p style='color:#333;margin:0;font-size:14px'>Talk soon,<br><strong>John Codis</strong><br>CEO & Founder, CyberReadyLabs</p></div><div style='background:#1a365d;color:#fff;padding:12px;text-align:center;font-size:11px'><p style='margin:0'>\u00a9 2026 CyberReadyLabs | cyberreadylabs.com</p></div></div>",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "data"
+        },
+        "subject": "Your Policy-as-Code Guide from CyberReadyLabs",
+        "toEmail": "={{ $('Extract Data').first().json.email }}"
+      },
+      "position": [
+        700,
+        400
+      ],
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}

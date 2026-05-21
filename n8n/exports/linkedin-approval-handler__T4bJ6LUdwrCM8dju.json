@@ -1,0 +1,481 @@
+{
+  "active": false,
+  "connections": {
+    "Answer Callback Query": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Is Approve?",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Tracking (Approve)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Update Tracking Approved",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Download Tracking (Deny)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Reset Tracking Entry",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Is Approve?": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Move to Approved",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Move to Denied",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Move to Approved": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Tracking (Approve)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Move to Denied": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Download Tracking (Deny)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Callback Data": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Answer Callback Query",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Reset Tracking Entry": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload Tracking (Deny)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Parse Callback Data",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Update Tracking Approved": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Upload Tracking (Approve)",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload Tracking (Approve)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify Approved",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Upload Tracking (Deny)": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Notify Denied",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "description": null,
+  "id": "T4bJ6LUdwrCM8dju",
+  "isArchived": false,
+  "meta": null,
+  "name": "LinkedIn Approval Handler",
+  "nodes": [
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000001",
+      "name": "Telegram Trigger",
+      "parameters": {
+        "additionalFields": {
+          "chatIds": "1290054454"
+        },
+        "updates": [
+          "callback_query"
+        ]
+      },
+      "position": [
+        -80,
+        0
+      ],
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "webhookId": "linkedin-approval-handler"
+    },
+    {
+      "id": "b2000001-0000-0000-0000-000000000002",
+      "name": "Parse Callback Data",
+      "parameters": {
+        "jsCode": "const callbackData = $input.item.json.callback_query.data;\nconst callbackQueryId = $input.item.json.callback_query.id;\nconst chatId = $input.item.json.callback_query.message.chat.id;\n\n// Parse action and postId from callback_data like \"approve_post_1706464800\" or \"deny_post_1706464800\"\nlet action, postId;\nif (callbackData.startsWith('approve_')) {\n  action = 'approve';\n  postId = callbackData.replace('approve_', '');\n} else if (callbackData.startsWith('deny_')) {\n  action = 'deny';\n  postId = callbackData.replace('deny_', '');\n} else {\n  throw new Error('Unknown callback action: ' + callbackData);\n}\n\nreturn [{ json: { action, postId, callbackQueryId, chatId } }];"
+      },
+      "position": [
+        160,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000003",
+      "name": "Answer Callback Query",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.action === 'approve' ? 'Post approved!' : 'Post denied.' }) }}",
+        "method": "POST",
+        "nodeCredentialType": "telegramApi",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "=https://api.telegram.org/bot={{ $credentials.telegramApi.accessToken }}/answerCallbackQuery"
+      },
+      "position": [
+        380,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4
+    },
+    {
+      "id": "b2000001-0000-0000-0000-000000000004",
+      "name": "Is Approve?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond_approve",
+              "leftValue": "={{ $('Parse Callback Data').item.json.action }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "approve"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        }
+      },
+      "position": [
+        600,
+        0
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000005",
+      "maxTries": 2,
+      "name": "Move to Approved",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Destination",
+              "value": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Approved/{{ $('Parse Callback Data').item.json.postId }}"
+            }
+          ]
+        },
+        "method": "MOVE",
+        "options": {},
+        "sendHeaders": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Pending_Review/{{ $('Parse Callback Data').item.json.postId }}"
+      },
+      "position": [
+        840,
+        -120
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000006",
+      "name": "Download Tracking (Approve)",
+      "parameters": {
+        "binaryPropertyName": "trackingFile",
+        "operation": "download",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        1060,
+        -120
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "b2000001-0000-0000-0000-000000000007",
+      "name": "Update Tracking Approved",
+      "parameters": {
+        "jsCode": "const binaryData = $input.item.binary.trackingFile;\nconst rawContent = Buffer.from(binaryData.data, 'base64').toString('utf-8');\nconst tracking = JSON.parse(rawContent);\nconst postId = $('Parse Callback Data').item.json.postId;\n\n// Find the entry and update status\nconst entry = tracking.processedFiles.find(f => f.postId === postId);\nif (entry) {\n  entry.status = 'approved';\n  entry.approvedDate = new Date().toISOString();\n}\ntracking.lastUpdated = new Date().toISOString();\n\nreturn [{ json: { trackingContent: JSON.stringify(tracking, null, 2), postId } }];"
+      },
+      "position": [
+        1280,
+        -120
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000008",
+      "name": "Upload Tracking (Approve)",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $json.trackingContent }}",
+        "operation": "upload",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        1500,
+        -120
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-000000000009",
+      "name": "Notify Approved",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=Post approved! ({{ $json.postId }})\n\nIt will be published on the next scheduled run (Tue/Thu 7 AM)."
+      },
+      "position": [
+        1720,
+        -120
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "xTw8iaoNqkd61kj6",
+          "name": "Nextcloud WebDAV"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-00000000000a",
+      "maxTries": 2,
+      "name": "Move to Denied",
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Destination",
+              "value": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Denied/{{ $('Parse Callback Data').item.json.postId }}"
+            }
+          ]
+        },
+        "method": "MOVE",
+        "options": {},
+        "sendHeaders": true,
+        "url": "=https://nextcloud.local.example.home/remote.php/webdav/Personal/LinkedIn/Pending_Review/{{ $('Parse Callback Data').item.json.postId }}"
+      },
+      "position": [
+        840,
+        160
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-00000000000b",
+      "name": "Download Tracking (Deny)",
+      "parameters": {
+        "binaryPropertyName": "trackingFile",
+        "operation": "download",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        1060,
+        160
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "id": "b2000001-0000-0000-0000-00000000000c",
+      "name": "Reset Tracking Entry",
+      "parameters": {
+        "jsCode": "const binaryData = $input.item.binary.trackingFile;\nconst rawContent = Buffer.from(binaryData.data, 'base64').toString('utf-8');\nconst tracking = JSON.parse(rawContent);\nconst postId = $('Parse Callback Data').item.json.postId;\n\n// Remove the entry so the source file gets picked up again\ntracking.processedFiles = tracking.processedFiles.filter(f => f.postId !== postId);\ntracking.lastUpdated = new Date().toISOString();\n\nreturn [{ json: { trackingContent: JSON.stringify(tracking, null, 2), postId } }];"
+      },
+      "position": [
+        1280,
+        160
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "nextCloudApi": {
+          "id": "eSTKrFXzErhQSOxu",
+          "name": "NextCloud account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-00000000000d",
+      "name": "Upload Tracking (Deny)",
+      "parameters": {
+        "binaryDataUpload": false,
+        "fileContent": "={{ $json.trackingContent }}",
+        "operation": "upload",
+        "path": "/Personal/LinkedIn/tracking.json"
+      },
+      "position": [
+        1500,
+        160
+      ],
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1
+    },
+    {
+      "credentials": {
+        "telegramApi": {
+          "id": "y0YeXZErXyUv02GH",
+          "name": "Telegram account"
+        }
+      },
+      "id": "b2000001-0000-0000-0000-00000000000e",
+      "name": "Notify Denied",
+      "parameters": {
+        "additionalFields": {},
+        "chatId": "1290054454",
+        "operation": "sendMessage",
+        "text": "=Post denied. ({{ $json.postId }})\n\nThe source file has been reset and will be regenerated with fresh content on the next scheduled run."
+      },
+      "position": [
+        1720,
+        160
+      ],
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": []
+}
